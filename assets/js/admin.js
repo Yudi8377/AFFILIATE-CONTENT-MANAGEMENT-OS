@@ -304,7 +304,7 @@ $('license-form').addEventListener('submit', async (event) => {
       plan_code: String(values.plan_code || 'free').trim(), status: 'active',
       starts_at: startsAt, ends_at: endsAt, limits: {}
     }});
-    form.reset(); $('license-code').value = '';
+    form.reset(); newLicenseCode();
     await refreshAll(); message('admin-message', 'License entitlement berhasil dibuat.', 'success');
   } catch (error) { message('admin-message', error.message || 'Gagal membuat lisensi.', 'error'); }
   finally { busy(form, false); }
