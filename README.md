@@ -45,6 +45,7 @@ Affiliate marketing operating system with an Indonesian-first public website, a 
 
 - **IMPLEMENTED IN BRANCH:** application modules, role-aware UI, local SEO/campaign/storyboard/compliance helpers, static public-page generator, scheduled publishing workflow, migrations, and CI assertions.
 - **DATABASE APPLIED:** migrations 0001–0007 applied to the designated development and production branches.
+- **CI discipline:** pull-request validation checks out the exact head SHA, runs syntax checks, unit tests, static generation, and Neon/RLS smoke tests.
 - **TESTED:** only the checks and tests that show successful status in GitHub Actions; review the latest run before treating a release as verified.
 - **NOT YET LIVE VERIFIED:** the changes on foundation/icda-baseline must pass CI and be merged before the new public website and workspace are deployed from main; production browser sign-in, initial platform-admin bootstrap, scheduled CMS publishing, and the browser media-rendering experience still require direct live verification.
 - **NOT IMPLEMENTED:** external generative AI image/video APIs, AI voice generation, server-side media storage, automatic social publishing, real search-volume/difficulty integrations, final accounting posting, payroll approval/payment, and tax/legal compliance certification.
