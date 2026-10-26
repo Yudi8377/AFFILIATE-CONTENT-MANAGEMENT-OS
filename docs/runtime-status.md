@@ -13,6 +13,7 @@ Updated: 2026-10-26.
 ## Not yet verified
 
 - Public HTTPS invocation of the health function from an external CI runner. The GitHub Actions smoke test is intended to verify this.
+- Initial CI build succeeded, but a follow-up assertion failed because Vite emits hashed CSS filenames rather than a fixed workspace.css filename. The base-branch CI assertion was corrected to inspect the generated CSS content; a new run is required.
 - Successful browser sign-up/sign-in, token retrieval, workspace creation, and CRUD through Neon Data API.
 - Positive-path and cross-workspace RLS tests using real authenticated sessions.
 - Production branch schema/auth/data API changes. None have been made.
