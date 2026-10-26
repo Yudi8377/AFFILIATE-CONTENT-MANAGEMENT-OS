@@ -19,7 +19,8 @@ Affiliate marketing operating system with an Indonesian-first public website, a 
 - **User workspace:** Neon Auth session, workspace role checks, products and affiliate links, SEO keyword planning, content drafts and review/publish workflow, campaign planning and records, CRM contacts, expenses, HR records, inventory, double-entry journal drafts, and payroll draft periods/items.
 - **Platform administration:** restricted admin.html console for workspaces, registered profiles, platform-admin access, license entitlements, agent registry, provider registry, audit events, and recorded agent runs. Admin access requires a database-authorized platform-admin record; signing in alone does not grant privilege.
 - **Database:** Neon PostgreSQL and Data API with row-level security. Migrations 0001 through 0007 cover core schema, policies, CRM/finance/HR/inventory modules, license-write hardening, platform-admin policies, local SEO agents, and provider cost gates.
-- **Local SEO agents:** search-intent classifier, keyword-cluster generator, SEO planner, campaign planner, affiliate compliance checklist, and storyboard planner. These are deterministic rule-based helpers, not external LLM inference.
+- **Local SEO and content agents:** search-intent classifier, keyword-cluster generator, SEO planner, campaign planner, affiliate compliance checklist, and storyboard planner. These are deterministic rule-based helpers, not external LLM inference.
+- **Multi-agent orchestration foundation:** bounded dependency-aware workflow engine, explicit capability allowlist, failure propagation, cycle and agent-count guards, and redacted execution audit events. It currently coordinates injected local handlers; it does not call a generative model or independently authorize database writes. See docs/multi-agent-orchestration.md.
 - **Video & Image Studio:** browser-local Canvas/MediaRecorder template rendering from user-uploaded images, text overlays, storyboard, compliance checks, PNG export, and browser-supported MP4/WebM export. No image/video model, voice generator, cloud upload, or persistent media storage is connected in this version.
 - **Provider governance:** only the local manual-template provider is registered as available by default. Database constraints prevent an external provider being marked available without verified free quota and commercial rights.
 
@@ -45,10 +46,10 @@ Affiliate marketing operating system with an Indonesian-first public website, a 
 
 - **IMPLEMENTED IN BRANCH:** application modules, role-aware UI, local SEO/campaign/storyboard/compliance helpers, static public-page generator, scheduled publishing workflow, migrations, and CI assertions.
 - **DATABASE APPLIED:** migrations 0001–0007 applied to the designated development and production branches.
-- **CI discipline:** pull-request validation checks out the exact head SHA, runs syntax checks, unit tests, static generation, and Neon/RLS smoke tests.
+- **CI discipline:** pull-request validation checks out the exact head SHA, runs syntax checks, unit tests, static generation, and Neon/RLS smoke tests. If no dedicated read-only Neon publishing JWT is configured, static generation warns and produces empty article/product collections rather than failing the whole build; real CMS publishing still requires verified read access.
 - **TESTED:** only the checks and tests that show successful status in GitHub Actions; review the latest run before treating a release as verified.
 - **NOT YET LIVE VERIFIED:** the changes on foundation/icda-baseline must pass CI and be merged before the new public website and workspace are deployed from main; production browser sign-in, initial platform-admin bootstrap, scheduled CMS publishing, and the browser media-rendering experience still require direct live verification.
-- **NOT IMPLEMENTED:** external generative AI image/video APIs, AI voice generation, server-side media storage, automatic social publishing, real search-volume/difficulty integrations, final accounting posting, payroll approval/payment, and tax/legal compliance certification.
+- **NOT IMPLEMENTED:** external generative AI image/video APIs, AI voice generation, server-side media storage, automatic social publishing, real search-volume/difficulty integrations, production-connected multi-agent runs and persisted agent audit UI, final accounting posting, payroll approval/payment, and tax/legal compliance certification.
 
 ## Production prerequisites
 
