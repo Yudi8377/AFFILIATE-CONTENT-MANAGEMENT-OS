@@ -76,6 +76,7 @@ async function main() {
   ]);
   const sitemap = new Set([siteBase]);
   let generatedArticles = 0, skippedArticles = 0, generatedProducts = 0, skippedProducts = 0;
+  const articleLinks = [], productLinks = [];
   for (const article of articles) {
     const articleSlug = slug(article.slug || article.title);
     const bodyText = String(article.body || '').trim();
@@ -86,7 +87,7 @@ async function main() {
     const body = renderTextBody(bodyText);
     const jsonLd = { '@context': 'https://schema.org', '@type': 'Article', headline: title, description, datePublished: article.published_at, dateModified: article.published_at, mainEntityOfPage: canonical, inLanguage: article.locale || 'id-ID', publisher: { '@type': 'Organization', name: 'Affiliate Content OS' } };
     await writePage('articles/' + articleSlug + '/index.html', shell({ title, description, canonical, body, jsonLd, kind: 'article' }));
-    sitemap.add(canonical); generatedArticles++;
+    sitemap.add(canonical); articleLinks.push({ title, canonical, description }); generatedArticles++;
   }
   for (const product of products) {
     const productSlug = slug(product.public_slug);
@@ -99,8 +100,20 @@ async function main() {
     const body = '<p>' + esc(product.public_description) + '</p><p class="disclosure">Affiliate disclosure: this page may contain an affiliate link. The publisher may earn a commission if you purchase through it, without changing the price you pay. Product details and prices can change; verify them with the merchant.</p>' + price + '<p><a class="cta" href="' + esc(sourceUrl) + '" rel="sponsored nofollow noopener" target="_blank">View product at merchant</a></p>';
     const jsonLd = { '@context': 'https://schema.org', '@type': 'Product', name: title, description: String(product.public_description), category: product.category || undefined, brand: product.merchant_name ? { '@type': 'Brand', name: product.merchant_name } : undefined, offers: product.price_amount == null ? undefined : { '@type': 'Offer', price: String(product.price_amount), priceCurrency: product.currency || 'IDR', url: sourceUrl, availability: 'https://schema.org/InStock' }, url: canonical };
     await writePage('products/' + productSlug + '/index.html', shell({ title, description, canonical, body, jsonLd, kind: 'product' }));
-    sitemap.add(canonical); generatedProducts++;
+    sitemap.add(canonical); productLinks.push({ title, canonical, description }); generatedProducts++;
   }
+  const articleIndexUrl = siteBase + 'articles/';
+  const productIndexUrl = siteBase + 'products/';
+  const articleIndexBody = articleLinks.length
+    ? '<ul>' + articleLinks.map((item) => '<li><a href="' + esc(item.canonical) + '">' + esc(item.title) + '</a><p>' + esc(item.description) + '</p></li>').join('') + '</ul>'
+    : '<p>Belum ada artikel yang lolos pemeriksaan publikasi. Artikel baru akan tampil setelah konten lengkap, metadata, dan disclosure ditinjau.</p>';
+  const productIndexBody = productLinks.length
+    ? '<ul>' + productLinks.map((item) => '<li><a href="' + esc(item.canonical) + '">' + esc(item.title) + '</a><p>' + esc(item.description) + '</p></li>').join('') + '</ul>'
+    : '<p>Belum ada halaman produk publik. Produk hanya tampil setelah deskripsi, tautan merchant, dan disclosure diperiksa.</p>';
+  await writePage('articles/index.html', shell({ title: 'Articles and SEO Guides', description: 'Practical affiliate marketing guides and reviewed content.', canonical: articleIndexUrl, body: articleIndexBody, jsonLd: { '@context': 'https://schema.org', '@type': 'CollectionPage', name: 'Articles and SEO Guides', url: articleIndexUrl }, kind: 'article' }));
+  await writePage('products/index.html', shell({ title: 'Reviewed Affiliate Products', description: 'Affiliate product pages with clear disclosures and merchant links.', canonical: productIndexUrl, body: productIndexBody, jsonLd: { '@context': 'https://schema.org', '@type': 'CollectionPage', name: 'Reviewed Affiliate Products', url: productIndexUrl }, kind: 'product' }));
+  sitemap.add(articleIndexUrl);
+  sitemap.add(productIndexUrl);
   await writeFile(join(outputDir, 'sitemap.xml'), '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + Array.from(sitemap).map((url) => '<url><loc>' + esc(url) + '</loc></url>').join('\n') + '\n</urlset>\n', 'utf8');
   console.log(JSON.stringify({ generatedArticles, skippedArticles, generatedProducts, skippedProducts, sitemapUrls: sitemap.size, siteBase }));
 }
