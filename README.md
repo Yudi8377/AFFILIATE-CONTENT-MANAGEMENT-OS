@@ -59,3 +59,8 @@ Affiliate marketing operating system with an Indonesian-first public website, a 
 4. Bootstrap that exact user ID as the first platform administrator through a verified database procedure; do not create a privileged identity based on a guessed email.
 5. Verify sign-in, workspace isolation, product publishing, public sitemap, scheduled CMS workflow, and video rendering in the production browser.
 6. Review privacy, affiliate disclosure, tax/accounting rules, and applicable legal obligations before commercial launch.
+
+
+## Release gate checklist
+
+Use [docs/production-readiness-gates.md](docs/production-readiness-gates.md) as the evidence checklist for hosted deployment, Neon branch safety, workflow audit lifecycle, scheduled publishing prerequisites, and commercial-readiness exclusions. Record the exact commit SHA and workflow run URLs for each release.
