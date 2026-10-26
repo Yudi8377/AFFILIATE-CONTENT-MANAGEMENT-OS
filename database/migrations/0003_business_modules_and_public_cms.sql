@@ -12,11 +12,7 @@ ALTER TABLE public.affiliate_products
   ADD COLUMN IF NOT EXISTS public_description text,
   ADD COLUMN IF NOT EXISTS published_at timestamptz;
 CREATE UNIQUE INDEX IF NOT EXISTS idx_products_public_slug ON public.affiliate_products(public_slug) WHERE public_slug IS NOT NULL;
-DO $ BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'affiliate_products_public_publish_check') THEN
-    ALTER TABLE public.affiliate_products ADD CONSTRAINT affiliate_products_public_publish_check CHECK (NOT is_public OR (public_slug IS NOT NULL AND published_at IS NOT NULL));
-  END IF;
-END $;
+ALTER TABLE public.affiliate_products ADD CONSTRAINT affiliate_products_public_publish_check CHECK (NOT is_public OR (public_slug IS NOT NULL AND published_at IS NOT NULL));
 
 CREATE TABLE IF NOT EXISTS public.platform_admins (
   user_id text PRIMARY KEY,
