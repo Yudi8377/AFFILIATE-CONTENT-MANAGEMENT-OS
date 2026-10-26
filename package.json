@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
-    "check": "node --check assets/js/app.js && node --check assets/js/workspace.js && node --check assets/js/admin.js && node --check vite.config.js && node --check scripts/smoke-neon-auth.mjs && node --check assets/js/agents/seo-planner.js && node --check tests/seo-planner.test.mjs && node --check scripts/generate-public-pages.mjs && node --check assets/js/agents/storyboard-planner.js && node --check assets/js/agents/affiliate-compliance.js && node --check tests/studio-agents.test.mjs && node --check assets/js/studio.js",
+    "check": "node --check assets/js/app.js && node --check assets/js/workspace.js && node --check assets/js/admin.js && node --check vite.config.js && node --check scripts/smoke-neon-auth.mjs && node --check assets/js/agents/seo-planner.js && node --check tests/seo-planner.test.mjs && node --check scripts/generate-public-pages.mjs && node --check assets/js/agents/storyboard-planner.js && node --check assets/js/agents/affiliate-compliance.js && node --check tests/studio-agents.test.mjs && node --check assets/js/studio.js && node --check assets/js/campaign-planner.js",
     "build": "vite build",
     "test": "node --test tests/*.test.mjs",
     "generate:public": "node scripts/generate-public-pages.mjs"
