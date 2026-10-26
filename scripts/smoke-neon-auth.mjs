@@ -82,6 +82,34 @@ async function main() {
     body: { workspace_id: workspaceId, user_id: owner.user.id, role: 'owner', status: 'active' }
   });
   assert(membership.ok, 'Owner membership insert failed: ' + JSON.stringify(membership));
+
+  const agentRun = await dataRequest('agent_runs', owner.token, {
+    method: 'POST',
+    body: {
+      workspace_id: workspaceId, requested_by: owner.user.id, agent_key: 'seo-planner',
+      status: 'queued', input_schema_version: '1', output_schema_version: '1',
+      input: { workflowId: 'ci-audit-test', externalModelUsed: false },
+      provider_name: 'local-deterministic', provider_status: 'unverified',
+      started_at: new Date().toISOString()
+    }
+  });
+  assert(agentRun.ok && Array.isArray(agentRun.data) && agentRun.data[0]?.id, 'Agent run insert failed: ' + JSON.stringify(agentRun));
+  const agentRunId = agentRun.data[0].id;
+  const finalizeRun = await dataRequest('agent_runs', owner.token, {
+    method: 'PATCH',
+    query: 'id=eq.' + agentRunId + '&requested_by=eq.' + encodeURIComponent(owner.user.id) + '&status=eq.queued',
+    body: {
+      status: 'needs_review',
+      output: { workflowStatus: 'completed', humanReviewRequired: true, externalModelUsed: false, audit: [] },
+      provider_status: 'unverified', failure_reason: null, finished_at: new Date().toISOString()
+    }
+  });
+  assert(finalizeRun.ok && Array.isArray(finalizeRun.data) && finalizeRun.data[0]?.status === 'needs_review', 'Agent run finalization policy failed: ' + JSON.stringify(finalizeRun));
+  const protectedFieldUpdate = await dataRequest('agent_runs', owner.token, {
+    method: 'PATCH', query: 'id=eq.' + agentRunId,
+    body: { requested_by: 'forged-user', agent_key: 'forged-agent' }
+  });
+  assert(!protectedFieldUpdate.ok, 'Agent-run identity fields must not be writable after insert.');
   const product = await dataRequest('affiliate_products', owner.token, {
     method: 'POST',
     body: { workspace_id: workspaceId, name: 'CI test product', status: 'research', created_by: owner.user.id, currency: 'IDR', facts: {} }
@@ -108,6 +136,6 @@ async function main() {
   assert(otherRead.ok && Array.isArray(otherRead.data) && otherRead.data.length === 0, 'RLS isolation failed: another user can see workspace products.');
   const anonymousRead = await dataRequest('affiliate_products', null, { query: 'select=id,name' });
   assert(!anonymousRead.ok || (Array.isArray(anonymousRead.data) && anonymousRead.data.length === 0), 'Anonymous request can read private products.');
-  console.log('Neon Auth/Data API smoke test passed: sign-up, JWT, profile/workspace/membership/product writes, owner read, cross-user isolation, anonymous denial.');
+  console.log('Neon Auth/Data API smoke test passed: sign-up, JWT, workspace isolation, restricted admin/license writes, CRM/finance/HR/inventory writes, scoped agent-run audit finalization, and immutable agent-run identity fields.');
 }
 main().catch((error) => { console.error(error); process.exitCode = 1; });
