@@ -1,10 +1,11 @@
 import { createAuthClient } from '@neondatabase/auth';
+import { generateSeoPlan } from './agents/seo-planner.js';
 
 const AUTH_URL = import.meta.env.VITE_NEON_AUTH_URL;
 const DATA_API_URL = import.meta.env.VITE_NEON_DATA_API_URL;
 const auth = AUTH_URL ? createAuthClient(AUTH_URL) : null;
 const $ = (id) => document.getElementById(id);
-const state = { user: null, workspace: null, role: 'member' };
+const state = { user: null, workspace: null, role: 'member', seoPlan: null };
 
 function message(id, text, kind) {
   const node = $(id);
@@ -327,6 +328,8 @@ function applyRoleAccess() {
     const form = $(formId);
     if (form) form.hidden = !roles.includes(state.role);
   });
+  const saveSeo = $('save-seo-draft');
+  if (saveSeo) saveSeo.hidden = !['owner','admin','editor'].includes(state.role);
   const moduleRoles = {
     expenses: ['owner','admin','finance_manager'],
     employees: ['owner','admin','hr_manager']
@@ -502,6 +505,86 @@ bindForm('inventory-form', async (values) => {
     status: 'active', created_by: state.user.id
   }});
   message('workspace-message', 'Item inventaris tersimpan.', 'success');
+});
+
+
+function renderSeoPlan(plan) {
+  state.seoPlan = plan;
+  $('seo-results').hidden = false;
+  $('seo-intent').textContent = plan.searchIntent;
+  $('seo-keyword-count').textContent = String(plan.keywordCount);
+  $('seo-meta-length').textContent = String(plan.metaDescriptionCharacters);
+  $('seo-meta-description').textContent = plan.metaDescription;
+  $('seo-quality-note').textContent = '10 clusters · ' + plan.clusterCount + ' cluster groups · search volume and difficulty are not measured. Human review is required before publishing. Meta description range: ' + (plan.quality.metaDescriptionLengthValid ? 'PASS' : 'CHECK LENGTH') + '.';
+  $('seo-title-list').replaceChildren();
+  plan.titles.forEach((title) => {
+    const li = document.createElement('li');
+    li.textContent = title;
+    $('seo-title-list').append(li);
+  });
+  const tbody = $('seo-table-body');
+  tbody.replaceChildren();
+  plan.rows.forEach((row) => {
+    const tr = document.createElement('tr');
+    [row.cluster,row.keyword,'Not measured','Not measured',row.searchIntent,row.title,row.metaDescription].forEach((value) => {
+      const td = document.createElement('td'); td.textContent = String(value); tr.append(td);
+    });
+    tbody.append(tr);
+  });
+}
+$('seo-form').addEventListener('submit', (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  try {
+    const values = Object.fromEntries(new FormData(form).entries());
+    const plan = generateSeoPlan({
+      keyword: values.keyword, audience: values.audience, benefit: values.benefit,
+      cta: values.cta, locale: values.locale, relatedKeywords: values.relatedKeywords
+    });
+    renderSeoPlan(plan);
+    message('workspace-message', 'SEO agent pipeline selesai. Hasil adalah saran berbasis aturan, bukan data volume pencarian atau output LLM.', 'success');
+  } catch (error) { message('workspace-message', error.message || 'SEO planner gagal.', 'error'); }
+});
+$('export-seo-csv').addEventListener('click', () => {
+  if (!state.seoPlan) { message('workspace-message', 'Jalankan SEO planner terlebih dahulu.', 'error'); return; }
+  const rows = [['keyword cluster','keyword','search volume','keyword difficulty','search intent','title','meta description']];
+  state.seoPlan.rows.forEach((row) => rows.push([row.cluster,row.keyword,'Not measured','Not measured',row.searchIntent,row.title,row.metaDescription]));
+  const csv = rows.map((row) => row.map((value) => '"' + String(value ?? '').replace(/"/g, '""') + '"').join(',')).join('\r\n');
+  const url = URL.createObjectURL(new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' }));
+  const link = document.createElement('a');
+  link.href = url; link.download = 'seo-plan-' + slugify(state.seoPlan.keyword) + '.csv';
+  document.body.append(link); link.click(); link.remove(); URL.revokeObjectURL(url);
+});
+$('save-seo-draft').addEventListener('click', async () => {
+  if (!state.seoPlan) { message('workspace-message', 'Jalankan SEO planner terlebih dahulu.', 'error'); return; }
+  if (!['owner','admin','editor'].includes(state.role)) { message('workspace-message', 'Role ini tidak dapat menyimpan draft konten.', 'error'); return; }
+  try {
+    const plan = state.seoPlan;
+    const body = [
+      'SEO BRIEF — RULE-BASED DRAFT',
+      'Target keyword: ' + plan.keyword,
+      'Search intent: ' + plan.searchIntent,
+      'Intent rationale: ' + plan.intentRationale,
+      '',
+      'Suggested outline:',
+      ...plan.outline.map((heading, index) => (index + 1) + '. ' + heading),
+      '',
+      'Related keyword ideas (metrics not measured):',
+      ...plan.rows.map((row) => '- [' + row.cluster + '] ' + row.keyword + ' — ' + row.searchIntent),
+      '',
+      'Quality gate: Search volume and keyword difficulty were not fabricated. Verify claims, source data, affiliate disclosure, and rights before publishing.'
+    ].join('\n');
+    const title = plan.titles[0];
+    await api('content_items', { method: 'POST', body: {
+      workspace_id: state.workspace.id, title, slug: slugify(title) + '-' + Date.now().toString().slice(-6),
+      content_type: 'article', status: 'draft', body,
+      meta_title: title, meta_description: plan.metaDescription,
+      locale: plan.locale === 'en' ? 'en-US' : 'id-ID',
+      disclosure_required: true, author_user_id: state.user.id
+    }});
+    message('workspace-message', 'SEO brief disimpan sebagai draft. Tidak dipublikasikan otomatis.', 'success');
+    await loadContent();
+  } catch (error) { message('workspace-message', error.message || 'Gagal menyimpan SEO brief.', 'error'); }
 });
 
 if (!AUTH_URL || !DATA_API_URL) {
