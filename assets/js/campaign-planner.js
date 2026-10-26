@@ -1,13 +1,15 @@
 import { generateCampaignPlan } from './agents/campaign-planner.js';
 import { runAgentWorkflow } from './agents/orchestrator.js';
+import { persistWorkflowRun } from './agents/persist-workflow-run.js';
 const $ = (id) => document.getElementById(id);
-export function initializeCampaignPlanner({ message }) {
+export function initializeCampaignPlanner({ message, api, getContext }) {
   let plan = null;
   $('campaign-planner-form').addEventListener('submit', async (event) => {
     event.preventDefault();
     const form = event.currentTarget;
     const submitButton = form.querySelector('button[type="submit"]');
     if (submitButton) submitButton.disabled = true;
+    const workflowStartedAt = new Date().toISOString();
     try {
       const data = Object.fromEntries(new FormData(form).entries());
       data.channels = new FormData(form).getAll('channels');
@@ -44,9 +46,22 @@ export function initializeCampaignPlanner({ message }) {
           }
         ]
       });
+      const context = typeof getContext === 'function' ? getContext() : {};
+      let auditState = { ok: false, error: 'Sesi dan workspace aktif diperlukan untuk menyimpan audit.' };
+      if (context.user && context.workspace && typeof api === 'function') {
+        try {
+          await persistWorkflowRun({
+            api, workspaceId: context.workspace.id, userId: context.user.id, workflow,
+            startedAt: workflowStartedAt, finishedAt: new Date().toISOString()
+          });
+          auditState = { ok: true };
+        } catch (auditError) {
+          auditState = { ok: false, error: auditError?.message || 'Audit workflow tidak dapat disimpan.' };
+        }
+      }
       if (workflow.status !== 'completed') {
         const failed = Object.values(workflow.results).find((result) => result.status === 'failed');
-        throw new Error(failed?.errorCode || 'Multi-agent campaign workflow did not complete.');
+        throw new Error((failed?.errorCode || 'Multi-agent campaign workflow did not complete.') + (auditState.ok ? ' Audit tercatat.' : ' Audit belum tersimpan: ' + auditState.error));
       }
       plan = workflow.results['campaign-strategist'].output;
       const review = workflow.results['campaign-quality-review'].output;
@@ -68,7 +83,7 @@ export function initializeCampaignPlanner({ message }) {
       if (plan.allocation) list('Budget allocation', plan.allocation, (item) => item.channel + ': ' + item.allocationPercent + '% · ' + new Intl.NumberFormat('id-ID').format(item.allocationAmount) + ' IDR');
       const note = document.createElement('p'); note.className = 'form-note'; note.textContent = 'Generated with deterministic rules only. No reach, conversion, ROI, or sales results are promised. Verify all product claims and campaign terms.'; root.append(note);
       $('campaign-plan-results').hidden = false;
-      message('workspace-message', 'Multi-agent kampanye selesai: strategist + quality reviewer memeriksa ' + review.channelsReviewed + ' channel. Hasil rule-based; tinjauan manusia tetap wajib.', 'success');
+      message('workspace-message', 'Multi-agent kampanye selesai: strategist + quality reviewer memeriksa ' + review.channelsReviewed + ' channel. Hasil rule-based; tinjauan manusia wajib. ' + (auditState.ok ? 'Audit tersimpan di Neon sebagai needs_review.' : 'PERINGATAN: audit belum tersimpan di Neon — ' + auditState.error), auditState.ok ? 'success' : 'error');
     } catch (error) { message('workspace-message', error.message || 'Campaign planner gagal.', 'error'); }
     finally { if (submitButton) submitButton.disabled = false; }
   });
