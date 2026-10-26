@@ -16,7 +16,7 @@ jobs:
         with:
           node-version: 22
       - name: Install pinned dependencies
-        run: npm install --no-audit --no-fund
+        run: npm install --no-audit --no-fund --ignore-scripts --legacy-peer-deps
       - name: Validate application and build
         env:
           VITE_NEON_AUTH_URL: https://ep-little-field-aomzop7h.neonauth.c-2.ap-southeast-1.aws.neon.tech/neondb/auth
