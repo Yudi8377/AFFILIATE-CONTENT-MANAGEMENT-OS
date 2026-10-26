@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow,noarchive" />
+    <meta name="theme-color" content="#101b2b" />
+    <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./assets/css/site.css" />
+    <link rel="stylesheet" href="./assets/css/workspace.css" />
+    <link rel="stylesheet" href="./assets/css/admin.css" />
+    <title>Platform Administration — Affiliate Content OS</title>
+  </head>
+  <body class="workspace-page">
+    <a class="skip-link" href="#main">Lewati ke konten</a>
+    <header class="site-header"><a class="brand" href="./index.html"><span class="brand-mark">A</span><span>Affiliate<span class="brand-muted">OS</span></span></a><div class="app-header-label">PLATFORM ADMIN</div><a class="button button-ghost button-small" href="./app.html">Workspace pengguna</a></header>
+    <main id="main" class="app-shell admin-shell">
+      <section id="admin-auth" class="auth-card" aria-labelledby="admin-title">
+        <p class="eyebrow">RESTRICTED ACCESS</p>
+        <h1 id="admin-title">Platform administration</h1>
+        <p class="auth-intro">Masuk menggunakan akun yang sudah diberi hak platform administrator. Hak ini tidak dapat dibuat sendiri melalui halaman ini.</p>
+        <form id="admin-signin" class="auth-form"><label for="admin-email">Email</label><input id="admin-email" name="email" type="email" autocomplete="username" required /><label for="admin-password">Kata sandi</label><input id="admin-password" name="password" type="password" autocomplete="current-password" required /><button class="button" type="submit">Masuk ke admin</button></form>
+        <p id="admin-auth-message" class="notice" role="status" aria-live="polite"></p>
+      </section>
+      <section id="admin-denied" class="auth-card" hidden><p class="eyebrow">ACCESS DENIED</p><h1>Akses administrator diperlukan</h1><p class="auth-intro">Akun ini belum tercatat sebagai platform administrator. Minta pemilik platform memberikan akses melalui proses bootstrap yang tepercaya.</p><p id="admin-denied-user" class="muted-text"></p><a class="button" href="./app.html">Buka workspace</a></section>
+      <section id="admin-dashboard" hidden>
+        <div class="dashboard-top"><div><p class="eyebrow">PLATFORM CONTROL PLANE</p><h1>Administration</h1><p id="admin-user-label" class="muted-text"></p></div><button id="admin-signout" class="button button-ghost button-small" type="button">Keluar</button></div>
+        <div id="admin-message" class="notice" role="status" aria-live="polite"></div>
+        <div class="dashboard-metrics admin-metrics"><article><span>Workspaces</span><strong id="metric-workspaces">—</strong><small>Database records</small></article><article><span>Licenses</span><strong id="metric-licenses">—</strong><small>Entitlements</small></article><article><span>Agent runs</span><strong id="metric-agents">—</strong><small>Recorded executions</small></article><article><span>Platform admins</span><strong id="metric-admins">—</strong><small>Privileged identities</small></article></div>
+        <nav class="module-tabs admin-tabs" aria-label="Admin modules"><button class="module-tab is-active" data-admin-view="licenses" type="button">Lisensi</button><button class="module-tab" data-admin-view="workspaces" type="button">Workspace & akun</button><button class="module-tab" data-admin-view="agents" type="button">Multi-agent</button><button class="module-tab" data-admin-view="providers" type="button">Provider & biaya</button><button class="module-tab" data-admin-view="audit" type="button">Audit & jobs</button></nav>
+        <section id="admin-view-licenses" class="module-panel admin-panel"><div class="module-heading"><div><p class="eyebrow">LICENSE ADMIN MANAGEMENT</p><h2>License entitlements</h2></div><button class="button button-small" id="refresh-licenses" type="button">Muat ulang</button></div><form id="license-form" class="data-form admin-form"><label>Workspace<select name="workspace_id" id="license-workspace" required></select></label><label>Plan code<input name="plan_code" maxlength="60" value="free" required /></label><label>License code<input name="license_code" maxlength="180" required /></label><label>Berakhir pada (opsional)<input name="ends_at" type="date" /></label><button class="button" type="submit">Terbitkan lisensi</button></form><div id="licenses-list" class="record-list admin-record-list"></div></section>
+        <section id="admin-view-workspaces" class="module-panel admin-panel" hidden><div class="module-heading"><div><p class="eyebrow">IDENTITY & TENANCY</p><h2>Workspace dan akun</h2></div><button class="button button-small" id="refresh-workspaces" type="button">Muat ulang</button></div><div class="admin-subsection"><h3>Platform administrators</h3><form id="platform-admin-form" class="data-form admin-form"><label>Pengguna terdaftar<select name="user_id" id="admin-user-select" required></select></label><label>Alasan pemberian akses<input name="reason" maxlength="240" placeholder="Contoh: pemilik platform" required /></label><button class="button" type="submit">Jadikan platform admin</button></form><div id="platform-admins-list" class="record-list admin-record-list"></div></div><div class="admin-subsection"><h3>Workspaces</h3><div id="workspaces-list" class="record-list admin-record-list"></div></div><div class="admin-subsection"><h3>Registered profiles</h3><div id="profiles-list" class="record-list admin-record-list"></div></div></section>
+        <section id="admin-view-agents" class="module-panel admin-panel" hidden><div class="module-heading"><div><p class="eyebrow">MULTI-AGENT GOVERNANCE</p><h2>Agent registry</h2></div><button class="button button-small" id="refresh-agents" type="button">Muat ulang</button></div><p class="form-note">Status planned/rule_based/tested/active harus mencerminkan implementasi yang benar-benar ada. Registry ini bukan bukti bahwa model AI eksternal sudah aktif.</p><div id="agents-list" class="record-list admin-record-list"></div></section>
+        <section id="admin-view-providers" class="module-panel admin-panel" hidden><div class="module-heading"><div><p class="eyebrow">ZERO-COST GOVERNANCE</p><h2>Provider registry & biaya</h2></div><button class="button button-small" id="refresh-providers" type="button">Muat ulang</button></div><p class="form-note">Provider eksternal tidak boleh ditandai available sampai kuota gratis, hak komersial, batas penggunaan, dan biaya terverifikasi. Tidak ada API key yang disimpan di browser.</p><div id="providers-list" class="record-list admin-record-list"></div></section>
+        <section id="admin-view-audit" class="module-panel admin-panel" hidden><div class="module-heading"><div><p class="eyebrow">OBSERVABILITY</p><h2>Audit events & agent runs</h2></div><button class="button button-small" id="refresh-audit" type="button">Muat ulang</button></div><div class="admin-subsection"><h3>Audit trail</h3><div id="audit-list" class="record-list admin-record-list"></div></div><div class="admin-subsection"><h3>Agent executions</h3><div id="agent-runs-list" class="record-list admin-record-list"></div></div></section>
+        <p class="app-status-note">Platform admin mutations are guarded by Neon RLS. User-visible admin controls do not replace server-side authorization or audit records.</p>
+      </section>
+    </main>
+    <script type="module" src="./assets/js/admin.js"></script>
+  </body>
+</html>
