@@ -204,3 +204,5 @@ ALTER TABLE public.media_assets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.license_entitlements ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.audit_events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.agent_runs ENABLE ROW LEVEL SECURITY;
+
+NOTIFY pgrst, 'reload schema';
