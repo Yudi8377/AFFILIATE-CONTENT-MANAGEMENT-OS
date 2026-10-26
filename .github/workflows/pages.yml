@@ -8,6 +8,11 @@ on:
       - 'app.html'
       - 'package.json'
       - 'vite.config.js'
+      - 'database/**'
+      - 'scripts/**'
+      - 'neon/functions/**'
+      - '.github/workflows/ci.yml'
+      - '.github/workflows/branch-checks.yml'
       - 'assets/**'
       - 'robots.txt'
       - 'sitemap.xml'
@@ -63,6 +68,15 @@ jobs:
           test "$(grep -c 'CREATE TABLE IF NOT EXISTS public\.' database/migrations/0001_core_schema.sql)" -eq 12
           test "$(grep -c 'ENABLE ROW LEVEL SECURITY' database/migrations/0001_core_schema.sql)" -eq 12
           test "$(grep -c 'CREATE POLICY' database/migrations/0002_rls_policies.sql)" -eq 39
+          test "$(grep -c 'CREATE TABLE IF NOT EXISTS public\\.' database/migrations/0003_business_modules_and_public_cms.sql)" -eq 15
+          test "$(grep -c 'ENABLE ROW LEVEL SECURITY' database/migrations/0003_business_modules_and_public_cms.sql)" -eq 15
+          test "$(grep -c 'CREATE POLICY' database/migrations/0003_business_modules_and_public_cms.sql)" -eq 59
+          test "$(grep -c 'DROP POLICY IF EXISTS' database/migrations/0004_license_write_hardening.sql)" -eq 3
+      - name: Smoke test Neon Auth, Data API, and RLS
+        env:
+          VITE_NEON_AUTH_URL: https://ep-little-field-aomzop7h.neonauth.c-2.ap-southeast-1.aws.neon.tech/neondb/auth
+          VITE_NEON_DATA_API_URL: https://ep-little-field-aomzop7h.apirest.c-2.ap-southeast-1.aws.neon.tech/neondb/rest/v1
+        run: node scripts/smoke-neon-auth.mjs
       - name: Smoke test Neon development function
         run: |
           curl --fail --silent --show-error --retry 3 --retry-delay 2 --max-time 30 https://br-morning-recipe-aov26ci2-health.compute.c-2.ap-southeast-1.aws.neon.tech/health | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const j=JSON.parse(s);if(j.ok!==true)process.exit(1);console.log('Neon function health:',j.status)})"
@@ -86,11 +100,14 @@ jobs:
         run: npm install --no-audit --no-fund --ignore-scripts --legacy-peer-deps
       - name: Assemble public artifact without repository docs or migrations
         env:
-          VITE_NEON_AUTH_URL: https://ep-little-field-aomzop7h.neonauth.c-2.ap-southeast-1.aws.neon.tech/neondb/auth
-          VITE_NEON_DATA_API_URL: https://ep-little-field-aomzop7h.apirest.c-2.ap-southeast-1.aws.neon.tech/neondb/rest/v1
+          VITE_NEON_AUTH_URL: https://ep-silent-shadow-ao76zug4.neonauth.c-2.ap-southeast-1.aws.neon.tech/neondb/auth
+          VITE_NEON_DATA_API_URL: https://ep-silent-shadow-ao76zug4.apirest.c-2.ap-southeast-1.aws.neon.tech/neondb/rest/v1
         run: |
           npm run build
           cp robots.txt sitemap.xml dist/
+      - name: Smoke test production Neon function
+        run: |
+          curl --fail --silent --show-error --retry 3 --retry-delay 2 --max-time 30 https://br-noisy-snow-aoosguyk-health.compute.c-2.ap-southeast-1.aws.neon.tech/health | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const j=JSON.parse(s);if(j.ok!==true)process.exit(1);console.log('Production Neon function health:',j.status)})"
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
