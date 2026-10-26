@@ -187,7 +187,7 @@ async function loadProducts() {
         publish.addEventListener('click', async () => {
           if (!window.confirm('Publikasikan halaman produk? Periksa klaim, harga, hak gambar, dan disclosure terlebih dahulu.')) return;
           try {
-            const slug = String(row.public_slug || slugify(row.name)).trim();
+            const slug = slugify(row.public_slug || row.name);
             await api('affiliate_products', { method: 'PATCH', query: 'id=eq.' + encodeURIComponent(row.id), body: { status: 'active', is_public: true, public_slug: slug, published_at: new Date().toISOString() } });
             await refreshAll(); message('workspace-message', 'Produk ditandai publik. Halaman statis akan dibuat oleh job publikasi berkala.', 'success');
           } catch (e) { message('workspace-message', e.message || 'Gagal mempublikasikan produk.', 'error'); }
