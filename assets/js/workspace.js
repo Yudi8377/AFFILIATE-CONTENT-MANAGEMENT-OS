@@ -1,5 +1,6 @@
 import { createAuthClient } from '@neondatabase/auth';
 import { generateSeoPlan } from './agents/seo-planner.js';
+import { runAgentWorkflow } from './agents/orchestrator.js';
 import { initializeStudio } from './studio.js';
 import { initializeCampaignPlanner } from './campaign-planner.js';
 
@@ -780,18 +781,54 @@ function renderSeoPlan(plan) {
     tbody.append(tr);
   });
 }
-$('seo-form').addEventListener('submit', (event) => {
+$('seo-form').addEventListener('submit', async (event) => {
   event.preventDefault();
   const form = event.currentTarget;
+  busy(form, true);
   try {
     const values = Object.fromEntries(new FormData(form).entries());
-    const plan = generateSeoPlan({
-      keyword: values.keyword, audience: values.audience, benefit: values.benefit,
-      cta: values.cta, locale: values.locale, relatedKeywords: values.relatedKeywords
+    const workflow = await runAgentWorkflow({
+      workflowId: 'seo-content-planning',
+      input: values,
+      allowedCapabilities: ['local-seo', 'quality-review'],
+      agents: [
+        {
+          id: 'seo-planner',
+          capabilities: ['local-seo'],
+          run: ({ input }) => generateSeoPlan({
+            keyword: input.keyword, audience: input.audience, benefit: input.benefit,
+            cta: input.cta, locale: input.locale, relatedKeywords: input.relatedKeywords
+          })
+        },
+        {
+          id: 'seo-quality-review',
+          dependsOn: ['seo-planner'],
+          capabilities: ['quality-review'],
+          run: ({ dependencies }) => {
+            const plan = dependencies['seo-planner'];
+            const uniqueKeywords = new Set(plan.rows.map((row) => row.keyword.toLocaleLowerCase()));
+            const validMetadata = plan.rows.every((row) => row.metaDescription.length >= 120 && row.metaDescription.length <= 155);
+            if (plan.rows.length !== 70 || uniqueKeywords.size !== plan.rows.length || !validMetadata) {
+              throw Object.assign(new Error('SEO quality gate rejected incomplete or duplicate output.'), { code: 'SEO_QUALITY_GATE_FAILED' });
+            }
+            if (plan.rows.some((row) => row.searchVolume !== null || row.keywordDifficulty !== null)) {
+              throw Object.assign(new Error('SEO metrics must remain unmeasured without verified data.'), { code: 'UNVERIFIED_SEO_METRICS' });
+            }
+            return { reviewedRows: plan.rows.length, uniqueKeywords: uniqueKeywords.size, metadataValid: true, metricsFabricated: false };
+          }
+        }
+      ]
     });
+    if (workflow.status !== 'completed') {
+      const failed = Object.values(workflow.results).find((result) => result.status === 'failed');
+      throw new Error(failed?.errorCode || 'Multi-agent SEO workflow did not complete.');
+    }
+    const plan = workflow.results['seo-planner'].output;
     renderSeoPlan(plan);
-    message('workspace-message', 'SEO agent pipeline selesai. Hasil adalah saran berbasis aturan, bukan data volume pencarian atau output LLM.', 'success');
+    const review = workflow.results['seo-quality-review'].output;
+    message('workspace-message', 'Multi-agent SEO selesai: planner + quality reviewer memeriksa ' + review.reviewedRows + ' keyword. Volume dan difficulty tetap Not measured; hasil masih memerlukan tinjauan manusia.', 'success');
   } catch (error) { message('workspace-message', error.message || 'SEO planner gagal.', 'error'); }
+  finally { busy(form, false); }
 });
 $('export-seo-csv').addEventListener('click', () => {
   if (!state.seoPlan) { message('workspace-message', 'Jalankan SEO planner terlebih dahulu.', 'error'); return; }
