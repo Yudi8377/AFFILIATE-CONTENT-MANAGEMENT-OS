@@ -1,5 +1,6 @@
 import { createAuthClient } from '@neondatabase/auth';
 import { generateSeoPlan } from './agents/seo-planner.js';
+import { initializeStudio } from './studio.js';
 
 const AUTH_URL = import.meta.env.VITE_NEON_AUTH_URL;
 const DATA_API_URL = import.meta.env.VITE_NEON_DATA_API_URL;
