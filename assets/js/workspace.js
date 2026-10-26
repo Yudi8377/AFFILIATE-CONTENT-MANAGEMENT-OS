@@ -4,7 +4,7 @@ const AUTH_URL = import.meta.env.VITE_NEON_AUTH_URL;
 const DATA_API_URL = import.meta.env.VITE_NEON_DATA_API_URL;
 const auth = AUTH_URL ? createAuthClient(AUTH_URL) : null;
 const $ = (id) => document.getElementById(id);
-const state = { user: null, workspace: null };
+const state = { user: null, workspace: null, role: 'member' };
 
 function message(id, text, kind) {
   const node = $(id);
@@ -70,9 +70,11 @@ async function ensureProfileAndWorkspace(user) {
       user_id: user.id, display_name: user.name || user.email || '', preferred_locale: 'id-ID'
     }});
   }
-  const workspaces = await api('workspaces', { query: 'select=id,name,slug,status,created_at&order=created_at.asc&limit=20' });
+  const workspaces = await api('workspaces', { query: 'select=id,name,slug,status,owner_user_id,created_at&order=created_at.asc&limit=20' });
   if (Array.isArray(workspaces) && workspaces.length) {
     state.workspace = workspaces[0];
+    const memberships = await api('workspace_memberships', { query: 'select=role,status&workspace_id=eq.' + state.workspace.id + '&user_id=eq.' + encodeURIComponent(user.id) + '&limit=1' });
+    state.role = (memberships && memberships[0] && memberships[0].role) || (state.workspace.owner_user_id === user.id ? 'owner' : 'member');
     return;
   }
   const slug = 'workspace-' + slugify(user.id).replace(/-/g, '').slice(0, 10) + '-' + Math.random().toString(36).slice(2, 6);
@@ -85,6 +87,7 @@ async function ensureProfileAndWorkspace(user) {
     workspace_id: workspace.id, user_id: user.id, role: 'owner', status: 'active'
   }});
   state.workspace = workspace;
+  state.role = 'owner';
 }
 function empty(container, text) {
   const p = document.createElement('p');
@@ -113,6 +116,50 @@ function record(container, title, lines, badge) {
     item.append(p);
   });
   $(container).append(item);
+  return item;
+}
+function addDeleteAction(root, table, id, label) {
+  const actions = document.createElement('div');
+  actions.className = 'record-actions';
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'button button-small button-danger';
+  button.textContent = label || 'Hapus';
+  button.addEventListener('click', async () => {
+    if (!window.confirm('Hapus data ini? Tindakan tidak dapat dibatalkan.')) return;
+    try {
+      await api(table, { method: 'DELETE', query: 'id=eq.' + encodeURIComponent(id) });
+      await refreshAll();
+      message('workspace-message', 'Data berhasil dihapus.', 'success');
+    } catch (error) { message('workspace-message', error.message || 'Gagal menghapus data.', 'error'); }
+  });
+  actions.append(button);
+  root.append(actions);
+}
+function addContentWorkflowActions(root, row) {
+  const actions = document.createElement('div');
+  actions.className = 'record-actions';
+  async function setStatus(status, publishedAt) {
+    await api('content_items', { method: 'PATCH', query: 'id=eq.' + encodeURIComponent(row.id), body: { status, published_at: publishedAt } });
+    await refreshAll();
+  }
+  if (row.status === 'draft' || row.status === 'idea' || row.status === 'brief') {
+    const review = document.createElement('button'); review.type = 'button'; review.className = 'button button-small'; review.textContent = 'Kirim review';
+    review.addEventListener('click', async () => { try { await setStatus('review', null); } catch (e) { message('workspace-message', e.message, 'error'); } }); actions.append(review);
+  }
+  if ((state.role === 'owner' || state.role === 'admin') && row.status === 'review') {
+    const approve = document.createElement('button'); approve.type = 'button'; approve.className = 'button button-small'; approve.textContent = 'Setujui';
+    approve.addEventListener('click', async () => { try { await setStatus('approved', null); } catch (e) { message('workspace-message', e.message, 'error'); } }); actions.append(approve);
+  }
+  if ((state.role === 'owner' || state.role === 'admin') && row.status === 'approved') {
+    const publish = document.createElement('button'); publish.type = 'button'; publish.className = 'button button-small'; publish.textContent = 'Publikasikan';
+    publish.addEventListener('click', async () => { if (!window.confirm('Publikasikan konten ini ke status published? Pastikan isi dan disclosure sudah ditinjau.')) return; try { await setStatus('published', new Date().toISOString()); } catch (e) { message('workspace-message', e.message, 'error'); } }); actions.append(publish);
+  }
+  if (row.status === 'published' && (state.role === 'owner' || state.role === 'admin')) {
+    const unpublish = document.createElement('button'); unpublish.type = 'button'; unpublish.className = 'button button-small button-danger'; unpublish.textContent = 'Tarik publikasi';
+    unpublish.addEventListener('click', async () => { try { await setStatus('archived', null); } catch (e) { message('workspace-message', e.message, 'error'); } }); actions.append(unpublish);
+  }
+  if (actions.childElementCount) root.append(actions);
 }
 async function loadProducts() {
   const rows = await api('affiliate_products', { query: 'select=id,name,merchant_name,category,price_amount,currency,status,source_url&workspace_id=eq.' + state.workspace.id + '&order=created_at.desc&limit=100' });
@@ -121,7 +168,8 @@ async function loadProducts() {
   if (!rows.length) empty('products-list', 'Belum ada produk. Tambahkan produk pertama melalui formulir di atas.');
   rows.forEach((row) => {
     const price = row.price_amount == null ? 'Harga belum diverifikasi' : new Intl.NumberFormat('id-ID').format(Number(row.price_amount)) + ' ' + (row.currency || 'IDR');
-    record('products-list', row.name, [row.merchant_name, row.category, price, row.source_url], row.status);
+    const item = record('products-list', row.name, [row.merchant_name, row.category, price, row.source_url], row.status);
+    if (state.role === 'owner' || state.role === 'admin') addDeleteAction(item, 'affiliate_products', row.id);
   });
 }
 async function loadKeywords() {
@@ -132,7 +180,8 @@ async function loadKeywords() {
   rows.forEach((row) => {
     const volume = row.search_volume == null ? 'Volume: not measured' : 'Volume: ' + row.search_volume;
     const difficulty = row.keyword_difficulty == null ? 'Difficulty: not measured' : 'Difficulty: ' + row.keyword_difficulty;
-    record('keywords-list', row.keyword, [row.cluster_name, row.search_intent + ' · ' + row.locale, volume + ' · ' + difficulty, row.metrics_source ? 'Source: ' + row.metrics_source : 'No volume source recorded'], row.search_intent);
+    const item = record('keywords-list', row.keyword, [row.cluster_name, row.search_intent + ' · ' + row.locale, volume + ' · ' + difficulty, row.metrics_source ? 'Source: ' + row.metrics_source : 'No volume source recorded'], row.search_intent);
+    if (state.role === 'owner' || state.role === 'admin') addDeleteAction(item, 'seo_keywords', row.id);
   });
 }
 async function loadContent() {
@@ -140,7 +189,7 @@ async function loadContent() {
   $('content-count').textContent = String(rows.filter((row) => row.status !== 'published').length);
   $('content-list').replaceChildren();
   if (!rows.length) empty('content-list', 'Belum ada draft. Buat draft pertama melalui formulir di atas.');
-  rows.forEach((row) => record('content-list', row.title, [row.slug, row.content_type, row.meta_description], row.status));
+  rows.forEach((row) => { const item = record('content-list', row.title, [row.slug, row.content_type, row.meta_description], row.status); addContentWorkflowActions(item, row); if (state.role === 'owner' || state.role === 'admin') addDeleteAction(item, 'content_items', row.id); });
 }
 async function refreshAll() {
   try {
