@@ -128,8 +128,6 @@ jobs:
         run: |
           curl --fail --silent --show-error --retry 3 --retry-delay 2 --max-time 30 https://br-noisy-snow-aoosguyk-health.compute.c-2.ap-southeast-1.aws.neon.tech/health | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const j=JSON.parse(s);if(j.ok!==true)process.exit(1);console.log('Production Neon function health:',j.status)})"
       - uses: actions/configure-pages@v5
-        with:
-          enablement: true
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
