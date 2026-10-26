@@ -5,7 +5,7 @@ const AUTH_URL = import.meta.env.VITE_NEON_AUTH_URL;
 const DATA_API_URL = import.meta.env.VITE_NEON_DATA_API_URL;
 const auth = AUTH_URL ? createAuthClient(AUTH_URL) : null;
 const $ = (id) => document.getElementById(id);
-const state = { user: null, workspace: null, role: 'member', seoPlan: null, editingProductId: null, editingContentId: null };
+const state = { user: null, workspace: null, role: 'member', seoPlan: null, editingProductId: null, editingContentId: null, employees: [], ledgerAccounts: [], journalEntries: [], journalLines: [], payrollPeriods: [] };
 
 function message(id, text, kind) {
   const node = $(id);
@@ -287,6 +287,7 @@ async function loadExpenses() {
 }
 async function loadEmployees() {
   const rows = await api('employees', { query: 'select=id,employee_code,full_name,email,department,employment_type,status,start_date&workspace_id=eq.' + state.workspace.id + '&order=created_at.desc&limit=200' });
+  state.employees = rows;
   $('employees-list').replaceChildren();
   if (!rows.length) empty('employees-list', 'Belum ada data karyawan.');
   rows.forEach((row) => {
@@ -306,9 +307,99 @@ async function loadInventory() {
     if ((state.role === 'owner' || state.role === 'admin' || state.role === 'inventory_manager') && row.status === 'active') addDeleteAction(item, 'inventory_items', row.id);
   });
 }
+async function loadAccounting() {
+  const [accounts, entries, lines] = await Promise.all([
+    api('ledger_accounts', { query: 'select=id,account_code,account_name,account_type,normal_balance,is_active,created_at&workspace_id=eq.' + state.workspace.id + '&order=account_code.asc&limit=300' }),
+    api('journal_entries', { query: 'select=id,entry_number,entry_date,description,status,created_at&workspace_id=eq.' + state.workspace.id + '&order=entry_date.desc&limit=300' }),
+    api('journal_lines', { query: 'select=id,journal_entry_id,account_id,description,debit,credit&workspace_id=eq.' + state.workspace.id + '&limit=1000' })
+  ]);
+  state.ledgerAccounts = accounts || []; state.journalEntries = entries || []; state.journalLines = lines || [];
+  $('ledger-list').replaceChildren();
+  if (!state.ledgerAccounts.length) empty('ledger-list', 'Belum ada akun buku besar.');
+  state.ledgerAccounts.forEach((account) => {
+    const item = record('ledger-list', account.account_code + ' · ' + account.account_name, [account.account_type, 'Normal balance: ' + account.normal_balance], account.is_active ? 'active' : 'inactive');
+    if (state.role === 'owner' || state.role === 'admin') addDeleteAction(item, 'ledger_accounts', account.id);
+  });
+  const accountSelect = $('journal-account-select'); accountSelect.replaceChildren();
+  state.ledgerAccounts.filter((account) => account.is_active).forEach((account) => {
+    const option = document.createElement('option'); option.value = account.id; option.textContent = account.account_code + ' · ' + account.account_name; accountSelect.append(option);
+  });
+  const entrySelect = $('journal-entry-select'); entrySelect.replaceChildren();
+  state.journalEntries.filter((entry) => entry.status === 'draft').forEach((entry) => {
+    const option = document.createElement('option'); option.value = entry.id; option.textContent = entry.entry_number + ' · ' + entry.entry_date; entrySelect.append(option);
+  });
+  $('journal-list').replaceChildren();
+  if (!state.journalEntries.length) empty('journal-list', 'Belum ada jurnal transaksi.');
+  const accountNames = new Map(state.ledgerAccounts.map((account) => [account.id, account.account_code + ' · ' + account.account_name]));
+  state.journalEntries.forEach((entry) => {
+    const entryLines = state.journalLines.filter((line) => line.journal_entry_id === entry.id);
+    const debit = entryLines.reduce((sum, line) => sum + Number(line.debit || 0), 0);
+    const credit = entryLines.reduce((sum, line) => sum + Number(line.credit || 0), 0);
+    const balanced = debit > 0 && Math.abs(debit - credit) < 0.005;
+    const details = entryLines.map((line) => (accountNames.get(line.account_id) || line.account_id) + ' · D ' + new Intl.NumberFormat('id-ID').format(Number(line.debit)) + ' / K ' + new Intl.NumberFormat('id-ID').format(Number(line.credit)) + (line.description ? ' · ' + line.description : ''));
+    const item = record('journal-list', entry.entry_number + ' · ' + entry.description, [entry.entry_date, 'Debit: ' + new Intl.NumberFormat('id-ID').format(debit) + ' IDR', 'Credit: ' + new Intl.NumberFormat('id-ID').format(credit) + ' IDR', balanced ? 'Balanced' : 'Not balanced', ...details], entry.status);
+    if (entry.status === 'draft' && balanced && ['owner','admin','finance_manager'].includes(state.role)) {
+      const actions = document.createElement('div'); actions.className = 'record-actions';
+      const review = document.createElement('button'); review.type = 'button'; review.className = 'button button-small'; review.textContent = 'Kirim review';
+      review.addEventListener('click', async () => {
+        if (!window.confirm('Kirim jurnal yang seimbang untuk review? Baris jurnal akan terkunci setelah dikirim.')) return;
+        try { await api('journal_entries', { method: 'PATCH', query: 'id=eq.' + encodeURIComponent(entry.id), body: { status: 'review' } }); await refreshAll(); }
+        catch (error) { message('workspace-message', error.message || 'Gagal mengirim jurnal untuk review.', 'error'); }
+      });
+      actions.append(review); item.append(actions);
+    }
+    if (entry.status === 'draft' && ['owner','admin','finance_manager'].includes(state.role)) addDeleteAction(item, 'journal_entries', entry.id);
+  });
+}
+async function loadPayroll() {
+  const periods = await api('payroll_periods', { query: 'select=id,period_start,period_end,status,created_at&workspace_id=eq.' + state.workspace.id + '&order=period_start.desc&limit=200' });
+  state.payrollPeriods = periods || [];
+  const periodSelect = $('payroll-period-select'); periodSelect.replaceChildren();
+  state.payrollPeriods.filter((period) => period.status === 'draft').forEach((period) => {
+    const option = document.createElement('option'); option.value = period.id; option.textContent = period.period_start + ' → ' + period.period_end; periodSelect.append(option);
+  });
+  const employeeSelect = $('payroll-employee-select'); employeeSelect.replaceChildren();
+  state.employees.filter((employee) => employee.status === 'active').forEach((employee) => {
+    const option = document.createElement('option'); option.value = employee.id; option.textContent = employee.employee_code + ' · ' + employee.full_name; employeeSelect.append(option);
+  });
+  const items = await api('payroll_items', { query: 'select=id,payroll_period_id,employee_id,base_salary,allowances,deductions,tax_amount,net_pay,notes&workspace_id=eq.' + state.workspace.id + '&limit=1000' });
+  $('payroll-period-list').replaceChildren();
+  if (!state.payrollPeriods.length) empty('payroll-period-list', 'Belum ada periode payroll.');
+  state.payrollPeriods.forEach((period) => {
+    const periodItems = (items || []).filter((item) => item.payroll_period_id === period.id);
+    const item = record('payroll-period-list', period.period_start + ' → ' + period.period_end, ['Payroll items: ' + periodItems.length, 'Status: ' + period.status], period.status);
+    if (period.status === 'draft' && periodItems.length > 0 && ['owner','admin','hr_manager'].includes(state.role)) {
+      const actions = document.createElement('div'); actions.className = 'record-actions';
+      const review = document.createElement('button'); review.type = 'button'; review.className = 'button button-small'; review.textContent = 'Kirim review';
+      review.addEventListener('click', async () => {
+        if (!window.confirm('Kirim periode payroll untuk review? Item payroll akan terkunci.')) return;
+        try { await api('payroll_periods', { method: 'PATCH', query: 'id=eq.' + encodeURIComponent(period.id), body: { status: 'review' } }); await refreshAll(); }
+        catch (error) { message('workspace-message', error.message || 'Gagal mengirim payroll untuk review.', 'error'); }
+      });
+      actions.append(review); item.append(actions);
+    }
+    if (period.status === 'draft' && ['owner','admin','hr_manager'].includes(state.role)) addDeleteAction(item, 'payroll_periods', period.id);
+  });
+  $('payroll-items-list').replaceChildren();
+  if (!items || !items.length) empty('payroll-items-list', 'Belum ada item payroll.');
+  const employeeNames = new Map(state.employees.map((employee) => [employee.id, employee.full_name]));
+  const periodNames = new Map(state.payrollPeriods.map((period) => [period.id, period.period_start + ' → ' + period.period_end]));
+  (items || []).forEach((payroll) => {
+    const period = state.payrollPeriods.find((entry) => entry.id === payroll.payroll_period_id);
+    const fmt = (n) => new Intl.NumberFormat('id-ID').format(Number(n || 0)) + ' IDR';
+    const item = record('payroll-items-list', employeeNames.get(payroll.employee_id) || payroll.employee_id, [
+      'Period: ' + (periodNames.get(payroll.payroll_period_id) || payroll.payroll_period_id),
+      'Base: ' + fmt(payroll.base_salary) + ' · Allowances: ' + fmt(payroll.allowances),
+      'Deductions: ' + fmt(payroll.deductions) + ' · Tax: ' + fmt(payroll.tax_amount),
+      'Net pay: ' + fmt(payroll.net_pay), payroll.notes
+    ], period ? period.status : 'unknown');
+    if (period && period.status === 'draft' && ['owner','admin','hr_manager'].includes(state.role)) addDeleteAction(item, 'payroll_items', payroll.id);
+  });
+}
 async function refreshAll() {
   try {
     await Promise.all([loadProducts(), loadKeywords(), loadContent(), loadCampaigns(), loadContacts(), loadExpenses(), loadEmployees(), loadInventory()]);
+    await Promise.all([loadAccounting(), loadPayroll()]);
     message('workspace-message', 'Data berhasil dimuat dari Neon Data API.', 'success');
   } catch (error) { message('workspace-message', error.message || 'Gagal memuat data.', 'error'); }
 }
@@ -384,7 +475,12 @@ function applyRoleAccess() {
     'crm-form': ['owner','admin','editor','crm_manager'],
     'expense-form': ['owner','admin','finance_manager'],
     'employee-form': ['owner','admin','hr_manager'],
-    'inventory-form': ['owner','admin','editor','inventory_manager']
+    'inventory-form': ['owner','admin','editor','inventory_manager'],
+    'ledger-form': ['owner','admin','finance_manager'],
+    'journal-form': ['owner','admin','finance_manager'],
+    'journal-line-form': ['owner','admin','finance_manager'],
+    'payroll-period-form': ['owner','admin','hr_manager'],
+    'payroll-item-form': ['owner','admin','hr_manager']
   };
   Object.entries(allowed).forEach(([formId, roles]) => {
     const form = $(formId);
@@ -394,7 +490,9 @@ function applyRoleAccess() {
   if (saveSeo) saveSeo.hidden = !['owner','admin','editor'].includes(state.role);
   const moduleRoles = {
     expenses: ['owner','admin','finance_manager'],
-    employees: ['owner','admin','hr_manager']
+    employees: ['owner','admin','hr_manager'],
+    payroll: ['owner','admin','hr_manager'],
+    accounting: ['owner','admin','finance_manager']
   };
   document.querySelectorAll('.module-tab[data-view]').forEach((tab) => {
     const roles = moduleRoles[tab.dataset.view];
