@@ -17,7 +17,7 @@ The reference URL supplied for the Transmind Nexus page could not be retrieved b
 7. **Cost & Provider Gate** — block external providers unless free quota, commercial rights, privacy terms, and a real integration test are verified.
 8. **Human Approval Gate** — require human review before public publication, irreversible actions, or sensitive changes.
 
-These roles describe the intended workflow. Only existing deterministic planners/checkers and the generic orchestration engine are implemented in this slice; no unimplemented role should be shown as active.
+These roles describe the intended workflow. The SEO planner and campaign strategist now run through the coordinator with a downstream quality reviewer in the workspace UI. Storyboard and affiliate-compliance helpers still run as separate local tools; they are not yet part of one end-to-end cross-domain workflow. No unimplemented role should be shown as active.
 
 ## Execution contract
 
@@ -36,4 +36,4 @@ The orchestrator test file covers dependency ordering, declared output handoff, 
 
 ## Operational boundary
 
-This module is a tested orchestration foundation, not proof of production AI autonomy. Before production use, connect the coordinator to the existing workspace UI and persisted agent_runs audit model, add authorization checks on the server/database side for every sensitive action, evaluate representative workflows, and run authenticated positive/negative RLS tests. Publishing, licensing, accounting posting, payroll payment, and external AI calls must remain gated until those controls pass.
+This module is a tested orchestration foundation, not proof of production AI autonomy. Before production use, persist workflow audit events to the existing agent_runs model through a server/database-authorized path, add authorization checks on the server/database side for every sensitive action, evaluate representative workflows, and run authenticated positive/negative RLS tests. The browser currently displays local workflow results but does not persist their audit trail. Publishing, licensing, accounting posting, payroll payment, and external AI calls must remain gated until those controls pass.
