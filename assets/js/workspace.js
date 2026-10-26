@@ -1,6 +1,7 @@
 import { createAuthClient } from '@neondatabase/auth';
 import { generateSeoPlan } from './agents/seo-planner.js';
 import { runAgentWorkflow } from './agents/orchestrator.js';
+import { persistWorkflowRun } from './agents/persist-workflow-run.js';
 import { initializeStudio } from './studio.js';
 import { initializeCampaignPlanner } from './campaign-planner.js';
 
@@ -22,6 +23,18 @@ function busy(form, on) {
   button.disabled = on;
   if (!button.dataset.label) button.dataset.label = button.textContent;
   button.textContent = on ? 'Memproses…' : button.dataset.label;
+}
+async function saveWorkflowAudit(workflow, startedAt) {
+  if (!state.user || !state.workspace) return { ok: false, error: 'Sesi dan workspace aktif diperlukan untuk menyimpan audit.' };
+  try {
+    await persistWorkflowRun({
+      api, workspaceId: state.workspace.id, userId: state.user.id, workflow,
+      startedAt, finishedAt: new Date().toISOString()
+    });
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error: error?.message || 'Audit workflow tidak dapat disimpan.' };
+  }
 }
 function slugify(value) {
   return String(value || '').normalize('NFKD').toLowerCase()
@@ -785,6 +798,7 @@ $('seo-form').addEventListener('submit', async (event) => {
   event.preventDefault();
   const form = event.currentTarget;
   busy(form, true);
+  const workflowStartedAt = new Date().toISOString();
   try {
     const values = Object.fromEntries(new FormData(form).entries());
     const workflow = await runAgentWorkflow({
@@ -820,13 +834,15 @@ $('seo-form').addEventListener('submit', async (event) => {
       ]
     });
     if (workflow.status !== 'completed') {
+      const audit = await saveWorkflowAudit(workflow, workflowStartedAt);
       const failed = Object.values(workflow.results).find((result) => result.status === 'failed');
-      throw new Error(failed?.errorCode || 'Multi-agent SEO workflow did not complete.');
+      throw new Error((failed?.errorCode || 'Multi-agent SEO workflow did not complete.') + (audit.ok ? ' Audit tercatat.' : ' Audit belum tersimpan: ' + audit.error));
     }
+    const audit = await saveWorkflowAudit(workflow, workflowStartedAt);
     const plan = workflow.results['seo-planner'].output;
     renderSeoPlan(plan);
     const review = workflow.results['seo-quality-review'].output;
-    message('workspace-message', 'Multi-agent SEO selesai: planner + quality reviewer memeriksa ' + review.reviewedRows + ' keyword. Volume dan difficulty tetap Not measured; hasil masih memerlukan tinjauan manusia.', 'success');
+    message('workspace-message', 'Multi-agent SEO selesai: planner + quality reviewer memeriksa ' + review.reviewedRows + ' keyword. Volume dan difficulty tetap Not measured; tinjauan manusia wajib. ' + (audit.ok ? 'Audit tersimpan di Neon sebagai needs_review.' : 'PERINGATAN: audit belum tersimpan di Neon — ' + audit.error), audit.ok ? 'success' : 'error');
   } catch (error) { message('workspace-message', error.message || 'SEO planner gagal.', 'error'); }
   finally { busy(form, false); }
 });
@@ -871,6 +887,22 @@ $('save-seo-draft').addEventListener('click', async () => {
     await loadContent();
   } catch (error) { message('workspace-message', error.message || 'Gagal menyimpan SEO brief.', 'error'); }
 });
+
+if ($('campaign-planner-form')) {
+  initializeCampaignPlanner({
+    message,
+    api,
+    getContext: () => ({ user: state.user, workspace: state.workspace, role: state.role })
+  });
+}
+if ($('studio-canvas')) {
+  initializeStudio({
+    getContext: () => ({ user: state.user, workspace: state.workspace, role: state.role }),
+    api,
+    slugify,
+    message
+  });
+}
 
 if (!AUTH_URL || !DATA_API_URL) {
   message('auth-message', 'Build belum dikonfigurasi dengan URL Neon Auth dan Data API. Login dinonaktifkan agar tidak mengarah ke database yang salah.', 'error');
