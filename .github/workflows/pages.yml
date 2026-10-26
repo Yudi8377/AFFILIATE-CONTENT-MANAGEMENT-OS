@@ -89,6 +89,8 @@ jobs:
           test "$(grep -c 'CREATE POLICY' database/migrations/0005_platform_admin_policies.sql)" -eq 15
           grep -q "keyword-cluster" database/migrations/0006_rule_based_seo_agents.sql
           grep -q "NOTIFY pgrst" database/migrations/0006_rule_based_seo_agents.sql
+          grep -q "provider_registry_available_requires_verified_free_commercial" database/migrations/0007_provider_cost_and_studio_agents.sql
+          grep -q "campaign-planner" database/migrations/0007_provider_cost_and_studio_agents.sql
       - name: Smoke test Neon Auth, Data API, and RLS
         env:
           VITE_NEON_AUTH_URL: https://ep-little-field-aomzop7h.neonauth.c-2.ap-southeast-1.aws.neon.tech/neondb/auth
