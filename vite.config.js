@@ -10,7 +10,9 @@ export default defineConfig({
       input: {
         main: resolve(process.cwd(), 'index.html'),
         app: resolve(process.cwd(), 'app.html'),
-        admin: resolve(process.cwd(), 'admin.html')
+        admin: resolve(process.cwd(), 'admin.html'),
+        privacy: resolve(process.cwd(), 'privacy.html'),
+        disclosure: resolve(process.cwd(), 'disclosure.html')
       }
     }
   }
