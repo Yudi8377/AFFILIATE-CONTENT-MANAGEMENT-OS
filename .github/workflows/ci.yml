@@ -27,8 +27,11 @@ jobs:
           cp robots.txt sitemap.xml dist/
           test -s dist/index.html
           test -s dist/app.html
+          test -s dist/admin.html
           grep -R -q 'auth-card' dist/assets/*.css
           grep -q 'noindex,nofollow,noarchive' dist/app.html
+          grep -q 'noindex,nofollow,noarchive' dist/admin.html
+          grep -R -q 'admin-shell' dist/assets/*.css
           test "$(grep -c 'CREATE TABLE IF NOT EXISTS public\.' database/migrations/0001_core_schema.sql)" -eq 12
           test "$(grep -c 'ENABLE ROW LEVEL SECURITY' database/migrations/0001_core_schema.sql)" -eq 12
           test "$(grep -c 'CREATE POLICY' database/migrations/0002_rls_policies.sql)" -eq 39
