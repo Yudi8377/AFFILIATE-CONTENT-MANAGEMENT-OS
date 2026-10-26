@@ -27,9 +27,14 @@ jobs:
           npm test
           npm run build
           cp robots.txt sitemap.xml dist/
+          npm run generate:public
           test -s dist/index.html
           test -s dist/app.html
           test -s dist/admin.html
+          test -s dist/privacy.html
+          test -s dist/disclosure.html
+          test -s dist/articles/index.html
+          test -s dist/products/index.html
           grep -R -q 'auth-card' dist/assets/*.css
           grep -q 'noindex,nofollow,noarchive' dist/app.html
           grep -q 'noindex,nofollow,noarchive' dist/admin.html
