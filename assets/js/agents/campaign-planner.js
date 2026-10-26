@@ -46,10 +46,11 @@ export function generateCampaignPlan(input) {
     cadence: index === 0 ? 'Launch asset + review weekly' : '1–3 assets per week; adjust after evidence',
     kpi: channel === 'website' ? 'Organic clicks, engaged visits, conversion rate' : channel === 'email' ? 'Delivery, click rate, unsubscribe rate' : 'Reach, qualified clicks, conversions'
   }));
+  const totalCents = budget === null ? null : Math.round(budget * 100);
   const allocation = budget === null ? null : channelPlan.map((channel, index) => ({
     channel: channel.label,
     allocationPercent: Math.floor(100 / channelPlan.length) + (index < 100 % channelPlan.length ? 1 : 0),
-    allocationAmount: Math.round((budget / channelPlan.length) * 100) / 100
+    allocationAmount: (Math.floor(totalCents / channelPlan.length) + (index < totalCents % channelPlan.length ? 1 : 0)) / 100
   }));
   return {
     productName, audience, benefit, goal, locale, budget, channels: channelPlan,
