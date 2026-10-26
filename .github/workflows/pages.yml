@@ -1,24 +1,13 @@
 name: Deploy public site to GitHub Pages
 
 on:
-  pull_request:
-    paths:
-      - 'index.html'
-      - 'app.html'
-      - 'package.json'
-      - 'vite.config.js'
-      - 'database/**'
-      - 'assets/**'
-      - 'app.html'
-      - 'package.json'
-      - 'vite.config.js'
-      - 'robots.txt'
-      - 'sitemap.xml'
-      - '.github/workflows/pages.yml'
   push:
     branches: [main]
     paths:
       - 'index.html'
+      - 'app.html'
+      - 'package.json'
+      - 'vite.config.js'
       - 'assets/**'
       - 'robots.txt'
       - 'sitemap.xml'
