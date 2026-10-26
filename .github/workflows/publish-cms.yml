@@ -1,0 +1,54 @@
+name: Scheduled CMS publishing
+
+on:
+  schedule:
+    - cron: '17,47 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install pinned dependencies
+        run: npm install --no-audit --no-fund --ignore-scripts --legacy-peer-deps
+      - name: Build public site and publish eligible CMS pages
+        env:
+          VITE_NEON_AUTH_URL: https://ep-silent-shadow-ao76zug4.neonauth.c-2.ap-southeast-1.aws.neon.tech/neondb/auth
+          VITE_NEON_DATA_API_URL: https://ep-silent-shadow-ao76zug4.apirest.c-2.ap-southeast-1.aws.neon.tech/neondb/rest/v1
+          SITE_BASE_URL: https://yudi8377.github.io/AFFILIATE-CONTENT-MANAGEMENT-OS/
+          NEON_PUBLIC_READ_TOKEN: ${{ secrets.NEON_PUBLIC_READ_TOKEN }}
+        run: |
+          test -n "$NEON_PUBLIC_READ_TOKEN" || { echo "NEON_PUBLIC_READ_TOKEN is required to publish CMS pages"; exit 1; }
+          npm run check
+          npm test
+          npm run build
+          cp robots.txt sitemap.xml dist/
+          npm run generate:public
+          test -s dist/index.html
+          test -s dist/privacy.html
+          test -s dist/disclosure.html
+          test -s dist/articles/index.html
+          test -s dist/products/index.html
+          grep -q 'sitemap.xml' dist/robots.txt
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /workspace/
+Sitemap: https://yudi8377.github.io/AFFILIATE-CONTENT-MANAGEMENT-OS/sitemap.xml

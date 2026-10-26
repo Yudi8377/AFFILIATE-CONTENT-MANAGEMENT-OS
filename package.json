@@ -1,0 +1,19 @@
+{
+  "name": "affiliate-content-management-os",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "check": "node --check assets/js/app.js && node --check assets/js/workspace.js && node --check assets/js/admin.js && node --check vite.config.js && node --check scripts/smoke-neon-auth.mjs && node --check assets/js/agents/seo-planner.js && node --check tests/seo-planner.test.mjs && node --check scripts/generate-public-pages.mjs && node --check assets/js/agents/storyboard-planner.js && node --check assets/js/agents/affiliate-compliance.js && node --check tests/studio-agents.test.mjs && node --check assets/js/studio.js && node --check assets/js/campaign-planner.js && node --check tests/campaign-planner.test.mjs && node --check assets/js/agents/orchestrator.js && node --check assets/js/agents/persist-workflow-run.js && node --check tests/orchestrator.test.mjs && node --check tests/seo-workflow.test.mjs && node --check tests/persist-workflow-run.test.mjs",
+    "build": "vite build",
+    "test": "node --test tests/*.test.mjs",
+    "generate:public": "node scripts/generate-public-pages.mjs"
+  },
+  "dependencies": {
+    "@neondatabase/auth": "0.7.0-beta"
+  },
+  "devDependencies": {
+    "vite": "6.4.5"
+  }
+}
