@@ -339,6 +339,12 @@ document.querySelectorAll('.module-tab').forEach((button) => button.addEventList
 $('refresh-products').addEventListener('click', () => loadProducts().catch((e) => message('workspace-message', e.message, 'error')));
 $('refresh-keywords').addEventListener('click', () => loadKeywords().catch((e) => message('workspace-message', e.message, 'error')));
 $('refresh-content').addEventListener('click', () => loadContent().catch((e) => message('workspace-message', e.message, 'error')));
+$('refresh-campaigns').addEventListener('click', () => loadCampaigns().catch((e) => message('workspace-message', e.message, 'error')));
+$('refresh-crm').addEventListener('click', () => loadContacts().catch((e) => message('workspace-message', e.message, 'error')));
+$('refresh-expenses').addEventListener('click', () => loadExpenses().catch((e) => message('workspace-message', e.message, 'error')));
+$('refresh-employees').addEventListener('click', () => loadEmployees().catch((e) => message('workspace-message', e.message, 'error')));
+$('refresh-inventory').addEventListener('click', () => loadInventory().catch((e) => message('workspace-message', e.message, 'error')));
+$('print-button').addEventListener('click', () => window.print());
 
 bindForm('product-form', async (values) => {
   requireWorkspace();
@@ -388,6 +394,89 @@ bindForm('content-form', async (values) => {
     locale: 'id-ID', disclosure_required: true, author_user_id: state.user.id
   }});
   message('workspace-message', 'Draft tersimpan. Draft tidak dipublikasikan otomatis.', 'success');
+});
+
+bindForm('campaign-form', async (values) => {
+  requireWorkspace();
+  const name = String(values.get('name') || '').trim();
+  if (!name) throw new Error('Nama kampanye wajib diisi.');
+  const startDate = String(values.get('start_date') || '').trim() || null;
+  const endDate = String(values.get('end_date') || '').trim() || null;
+  if (startDate && endDate && endDate < startDate) throw new Error('Tanggal akhir tidak boleh sebelum tanggal mulai.');
+  const rawBudget = String(values.get('budget_amount') || '').trim();
+  const budget = rawBudget === '' ? null : Number(rawBudget);
+  if (budget !== null && (!Number.isFinite(budget) || budget < 0)) throw new Error('Anggaran harus nol atau lebih.');
+  await api('campaigns', { method: 'POST', body: {
+    workspace_id: state.workspace.id, name, channel: String(values.get('channel') || 'other'),
+    status: 'draft', start_date: startDate, end_date: endDate, budget_amount: budget,
+    currency: 'IDR', notes: String(values.get('notes') || '').trim(), created_by: state.user.id
+  }});
+  message('workspace-message', 'Kampanye tersimpan sebagai draft.', 'success');
+});
+bindForm('crm-form', async (values) => {
+  requireWorkspace();
+  const name = String(values.get('name') || '').trim();
+  if (!name) throw new Error('Nama kontak wajib diisi.');
+  const email = String(values.get('email') || '').trim();
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('Format email tidak valid.');
+  await api('crm_contacts', { method: 'POST', body: {
+    workspace_id: state.workspace.id, name, contact_type: String(values.get('contact_type') || 'lead'),
+    email: email || null, phone: String(values.get('phone') || '').trim() || null,
+    company: String(values.get('company') || '').trim() || null,
+    source: String(values.get('source') || '').trim() || null,
+    notes: String(values.get('notes') || '').trim(), status: 'new', created_by: state.user.id
+  }});
+  message('workspace-message', 'Kontak CRM tersimpan.', 'success');
+});
+bindForm('expense-form', async (values) => {
+  requireWorkspace();
+  const vendor = String(values.get('vendor_name') || '').trim();
+  const description = String(values.get('description') || '').trim();
+  const amount = Number(values.get('amount'));
+  if (!vendor || !description) throw new Error('Vendor dan deskripsi wajib diisi.');
+  if (!Number.isFinite(amount) || amount <= 0) throw new Error('Nominal pengeluaran harus lebih dari nol.');
+  await api('expenses', { method: 'POST', body: {
+    workspace_id: state.workspace.id, vendor_name: vendor, description,
+    category: String(values.get('category') || 'other').trim() || 'other',
+    amount, currency: 'IDR', incurred_on: String(values.get('incurred_on') || '').trim() || new Date().toISOString().slice(0, 10),
+    status: 'draft', created_by: state.user.id
+  }});
+  message('workspace-message', 'Pengeluaran tersimpan sebagai draft; belum disetujui atau dibayar.', 'success');
+});
+bindForm('employee-form', async (values) => {
+  requireWorkspace();
+  const employeeCode = String(values.get('employee_code') || '').trim();
+  const fullName = String(values.get('full_name') || '').trim();
+  if (!employeeCode || !fullName) throw new Error('Kode karyawan dan nama lengkap wajib diisi.');
+  const email = String(values.get('email') || '').trim();
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('Format email tidak valid.');
+  await api('employees', { method: 'POST', body: {
+    workspace_id: state.workspace.id, employee_code: employeeCode, full_name: fullName,
+    email: email || null, department: String(values.get('department') || '').trim() || null,
+    employment_type: String(values.get('employment_type') || 'full_time'),
+    start_date: String(values.get('start_date') || '').trim() || null,
+    status: 'active', created_by: state.user.id
+  }});
+  message('workspace-message', 'Data karyawan tersimpan. Akses dibatasi oleh role HR.', 'success');
+});
+bindForm('inventory-form', async (values) => {
+  requireWorkspace();
+  const sku = String(values.get('sku') || '').trim();
+  const name = String(values.get('name') || '').trim();
+  if (!sku || !name) throw new Error('SKU dan nama item wajib diisi.');
+  const quantity = Number(values.get('quantity_on_hand') || 0);
+  const reorder = Number(values.get('reorder_level') || 0);
+  const rawCost = String(values.get('unit_cost') || '').trim();
+  const cost = rawCost === '' ? null : Number(rawCost);
+  if (!Number.isFinite(quantity) || quantity < 0 || !Number.isFinite(reorder) || reorder < 0) throw new Error('Jumlah stok dan reorder level tidak boleh negatif.');
+  if (cost !== null && (!Number.isFinite(cost) || cost < 0)) throw new Error('Harga pokok tidak boleh negatif.');
+  await api('inventory_items', { method: 'POST', body: {
+    workspace_id: state.workspace.id, sku, name,
+    unit: String(values.get('unit') || 'unit').trim() || 'unit',
+    quantity_on_hand: quantity, reorder_level: reorder, unit_cost: cost,
+    status: 'active', created_by: state.user.id
+  }});
+  message('workspace-message', 'Item inventaris tersimpan.', 'success');
 });
 
 if (!AUTH_URL || !DATA_API_URL) {
