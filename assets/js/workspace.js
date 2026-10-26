@@ -5,7 +5,7 @@ const AUTH_URL = import.meta.env.VITE_NEON_AUTH_URL;
 const DATA_API_URL = import.meta.env.VITE_NEON_DATA_API_URL;
 const auth = AUTH_URL ? createAuthClient(AUTH_URL) : null;
 const $ = (id) => document.getElementById(id);
-const state = { user: null, workspace: null, role: 'member', seoPlan: null };
+const state = { user: null, workspace: null, role: 'member', seoPlan: null, editingProductId: null, editingContentId: null };
 
 function message(id, text, kind) {
   const node = $(id);
@@ -153,8 +153,12 @@ function addContentWorkflowActions(root, row) {
     approve.addEventListener('click', async () => { try { await setStatus('approved', null); } catch (e) { message('workspace-message', e.message, 'error'); } }); actions.append(approve);
   }
   if ((state.role === 'owner' || state.role === 'admin') && row.status === 'approved') {
-    const publish = document.createElement('button'); publish.type = 'button'; publish.className = 'button button-small'; publish.textContent = 'Publikasikan';
-    publish.addEventListener('click', async () => { if (!window.confirm('Publikasikan konten ini ke status published? Pastikan isi dan disclosure sudah ditinjau.')) return; try { await setStatus('published', new Date().toISOString()); } catch (e) { message('workspace-message', e.message, 'error'); } }); actions.append(publish);
+    if (String(row.body || '').trim().length >= 300 && !/^SEO BRIEF\s*[—-]/i.test(String(row.body || '').trim())) {
+      const publish = document.createElement('button'); publish.type = 'button'; publish.className = 'button button-small'; publish.textContent = 'Publikasikan';
+      publish.addEventListener('click', async () => { if (!window.confirm('Publikasikan konten ini ke status published? Pastikan isi, sumber, klaim, dan disclosure sudah ditinjau.')) return; try { await setStatus('published', new Date().toISOString()); } catch (e) { message('workspace-message', e.message, 'error'); } }); actions.append(publish);
+    } else {
+      actions.append(document.createTextNode('Lengkapi isi artikel minimal 300 karakter sebelum publikasi.'));
+    }
   }
   if (row.status === 'published' && (state.role === 'owner' || state.role === 'admin')) {
     const unpublish = document.createElement('button'); unpublish.type = 'button'; unpublish.className = 'button button-small button-danger'; unpublish.textContent = 'Tarik publikasi';
@@ -216,7 +220,25 @@ async function loadContent() {
   $('content-count').textContent = String(rows.filter((row) => row.status !== 'published').length);
   $('content-list').replaceChildren();
   if (!rows.length) empty('content-list', 'Belum ada draft. Buat draft pertama melalui formulir di atas.');
-  rows.forEach((row) => { const item = record('content-list', row.title, [row.slug, row.content_type, row.meta_description], row.status); addContentWorkflowActions(item, row); if (state.role === 'owner' || state.role === 'admin') addDeleteAction(item, 'content_items', row.id); });
+  rows.forEach((row) => {
+    const item = record('content-list', row.title, [row.slug, row.content_type, row.meta_description, 'Updated: ' + row.updated_at], row.status);
+    addContentWorkflowActions(item, row);
+    if (['owner','admin','editor'].includes(state.role) && row.status !== 'published') {
+      const editActions = document.createElement('div'); editActions.className = 'record-actions';
+      const edit = document.createElement('button'); edit.type = 'button'; edit.className = 'button button-small'; edit.textContent = 'Edit draft';
+      edit.addEventListener('click', () => {
+        state.editingContentId = row.id;
+        const form = $('content-form');
+        ['title','slug','content_type','meta_title','meta_description','body','locale'].forEach((key) => { const field = form.elements.namedItem(key); if (field) field.value = row[key] || ''; });
+        const disclosure = form.elements.namedItem('disclosure_required'); if (disclosure) disclosure.checked = Boolean(row.disclosure_required);
+        const submit = form.querySelector('button[type="submit"]'); submit.textContent = 'Simpan perubahan'; submit.dataset.label = 'Simpan perubahan';
+        form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        message('workspace-message', 'Mode edit aktif. Simpan akan mengembalikan status ke draft untuk review ulang.', 'success');
+      });
+      editActions.append(edit); item.append(editActions);
+    }
+    if ((state.role === 'owner' || state.role === 'admin') && row.status !== 'published') addDeleteAction(item, 'content_items', row.id);
+  });
 }
 async function loadCampaigns() {
   const rows = await api('campaigns', { query: 'select=id,name,channel,status,start_date,end_date,budget_amount,currency,created_at&workspace_id=eq.' + state.workspace.id + '&order=created_at.desc&limit=100' });
@@ -407,15 +429,30 @@ bindForm('product-form', async (values) => {
   const rawPrice = String(values.get('price_amount') || '').trim();
   const price = rawPrice === '' ? null : Number(rawPrice);
   if (price !== null && (!Number.isFinite(price) || price < 0)) throw new Error('Harga harus angka nol atau lebih.');
-  await api('affiliate_products', { method: 'POST', body: {
+  const payload = {
     workspace_id: state.workspace.id, name,
     source_url: httpUrl(String(values.get('source_url') || '').trim(), 'URL sumber'),
     affiliate_url: httpUrl(String(values.get('affiliate_url') || '').trim(), 'URL affiliate'),
     merchant_name: String(values.get('merchant_name') || '').trim() || null,
     category: String(values.get('category') || '').trim() || null,
-    price_amount: price, currency: 'IDR', status: 'research', created_by: state.user.id
-  }});
-  message('workspace-message', 'Produk tersimpan di Neon.', 'success');
+    public_slug: String(values.get('public_slug') || '').trim() || null,
+    public_description: String(values.get('public_description') || '').trim() || null,
+    price_amount: price, currency: 'IDR', created_by: state.user.id
+  };
+  if (state.editingProductId) {
+    await api('affiliate_products', { method: 'PATCH', query: 'id=eq.' + encodeURIComponent(state.editingProductId), body: {
+      name: payload.name, source_url: payload.source_url, affiliate_url: payload.affiliate_url,
+      merchant_name: payload.merchant_name, category: payload.category, public_slug: payload.public_slug,
+      public_description: payload.public_description, price_amount: payload.price_amount, currency: payload.currency
+    }});
+    state.editingProductId = null;
+    const submit = $('product-form').querySelector('button[type="submit"]'); submit.dataset.label = 'Simpan produk';
+    message('workspace-message', 'Perubahan produk tersimpan.', 'success');
+  } else {
+    payload.status = 'research'; payload.is_public = false; payload.published_at = null;
+    await api('affiliate_products', { method: 'POST', body: payload });
+    message('workspace-message', 'Produk tersimpan di Neon.', 'success');
+  }
 });
 bindForm('keyword-form', async (values) => {
   requireWorkspace();
