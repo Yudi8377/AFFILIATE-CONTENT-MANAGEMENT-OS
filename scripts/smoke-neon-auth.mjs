@@ -94,6 +94,14 @@ async function main() {
   assert(!selfLicenseAttempt.ok, 'Workspace owner must not be able to issue a license to themselves.');
   const selfAdminAttempt = await dataRequest('platform_admins', owner.token, { method: 'POST', body: { user_id: owner.user.id, status: 'active', reason: 'must be denied to browser clients' } });
   assert(!selfAdminAttempt.ok, 'A regular user must not be able to grant themselves platform-admin privileges.');
+  const crm = await dataRequest('crm_contacts', owner.token, { method: 'POST', body: { workspace_id: workspaceId, name: 'CI CRM Contact', contact_type: 'lead', created_by: owner.user.id } });
+  assert(crm.ok, 'CRM contact insert failed: ' + JSON.stringify(crm));
+  const expense = await dataRequest('expenses', owner.token, { method: 'POST', body: { workspace_id: workspaceId, vendor_name: 'CI Vendor', description: 'CI expense validation', amount: 1250, currency: 'IDR', status: 'draft', created_by: owner.user.id } });
+  assert(expense.ok, 'Expense insert failed: ' + JSON.stringify(expense));
+  const employee = await dataRequest('employees', owner.token, { method: 'POST', body: { workspace_id: workspaceId, employee_code: 'CI-' + randomBytes(4).toString('hex'), full_name: 'CI Test Employee', created_by: owner.user.id } });
+  assert(employee.ok, 'HR employee insert failed: ' + JSON.stringify(employee));
+  const inventory = await dataRequest('inventory_items', owner.token, { method: 'POST', body: { workspace_id: workspaceId, sku: 'CI-' + randomBytes(4).toString('hex'), name: 'CI Inventory Item', created_by: owner.user.id } });
+  assert(inventory.ok, 'Inventory insert failed: ' + JSON.stringify(inventory));
 
   const other = await createIdentity('other');
   const otherRead = await dataRequest('affiliate_products', other.token, { query: 'select=id,name' });
