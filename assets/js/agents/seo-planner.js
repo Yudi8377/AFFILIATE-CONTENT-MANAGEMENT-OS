@@ -18,7 +18,7 @@ const CATEGORY_TEMPLATES = {
     ['Comparisons and alternatives','commercial',['comparison','vs alternatives','best alternatives','review and evaluation','advantages over competitors','pros and cons','how to choose']],
     ['Pricing and cost','commercial',['pricing','cost to use','free plan','hidden costs','cost comparison','starter budget','value for money']],
     ['Purchase and conversion','transactional',['where to buy','sign up now','get started','latest promotion','discount code','official offer','how to access']],
-    ['Audience and industry','commercial',['for new creators','for affiliate marketers','for content creators','for small businesses','for ecommerce','for publishers','for marketing agencies']],
+    ['Audience and industry','commercial',['for new creators','for affiliate marketers','for content creators','for lean teams','for ecommerce','for publishers','for marketing agencies']],
     ['Problems and solutions','informational',['common problems','how to fix errors','solutions to common issues','troubleshooting guide','usage risks','common mistakes','how to prevent issues']],
     ['Trust and compliance','informational',['affiliate disclosure rules','privacy and security','commercial usage rights','review policy','terms and conditions','compliance risks','pre-publication checklist']],
     ['Strategy and performance','commercial',['marketing strategy','conversion optimization','how to measure ROI','campaign plan','performance metrics','growth strategy','case study']]
