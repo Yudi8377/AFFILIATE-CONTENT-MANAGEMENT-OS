@@ -39,7 +39,10 @@ test('keeps supplied related keywords unique and adds a human-review flag', () =
   });
   const values = plan.rows.map((row) => row.keyword.toLocaleLowerCase());
   assert.equal(new Set(values).size, values.length);
-  assert.equal(plan.rows.length, 71); // Two supplied terms are already represented by generated variations.
+  const basePlan = generateSeoPlan({ keyword: 'konten affiliate', locale: 'id' });
+  const supplied = new Set(['konten affiliate','cara membuat konten affiliate','strategi konten affiliate'].map((item) => item.toLocaleLowerCase()));
+  const overlap = basePlan.rows.filter((row) => supplied.has(row.keyword.toLocaleLowerCase())).length;
+  assert.equal(plan.rows.length, basePlan.rows.length + supplied.size - overlap);
   assert.ok(plan.rows.some((row) => row.keyword === 'strategi konten affiliate'));
   assert.equal(plan.quality.humanReviewRequired, true);
 });
