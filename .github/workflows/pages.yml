@@ -63,9 +63,13 @@ jobs:
         run: |
           npm run check
           npm run build
+          cp robots.txt sitemap.xml dist/
           test -s dist/index.html
           test -s dist/app.html
           grep -q 'noindex,nofollow,noarchive' dist/app.html
+      - name: Smoke test Neon development function
+        run: |
+          curl --fail --silent --show-error --retry 3 --retry-delay 2 --max-time 30 https://br-morning-recipe-aov26ci2-health.compute.c-2.ap-southeast-1.aws.neon.tech/health | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const j=JSON.parse(s);if(j.ok!==true)process.exit(1);console.log('Neon function health:',j.status)})"
       - name: Check public SEO routes are not exposing app-only paths
         run: |
           grep -q 'Sitemap: https://yudi8377.github.io/AFFILIATE-CONTENT-MANAGEMENT-OS/sitemap.xml' robots.txt
@@ -83,7 +87,9 @@ jobs:
         env:
           VITE_NEON_AUTH_URL: https://ep-little-field-aomzop7h.neonauth.c-2.ap-southeast-1.aws.neon.tech/neondb/auth
           VITE_NEON_DATA_API_URL: https://ep-little-field-aomzop7h.apirest.c-2.ap-southeast-1.aws.neon.tech/neondb/rest/v1
-        run: npm run build
+        run: |
+          npm run build
+          cp robots.txt sitemap.xml dist/
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
