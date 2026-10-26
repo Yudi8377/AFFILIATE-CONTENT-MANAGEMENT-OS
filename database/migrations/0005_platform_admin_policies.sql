@@ -35,3 +35,5 @@ CREATE POLICY audit_select_platform_admin ON public.audit_events
   FOR SELECT TO authenticated USING (public.is_platform_admin());
 CREATE POLICY agent_runs_select_platform_admin ON public.agent_runs
   FOR SELECT TO authenticated USING (public.is_platform_admin());
+
+NOTIFY pgrst, 'reload schema';
