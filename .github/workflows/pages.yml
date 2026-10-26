@@ -7,6 +7,7 @@ on:
       - 'app.html'
       - 'package.json'
       - 'vite.config.js'
+      - 'database/**'
       - 'assets/**'
       - 'app.html'
       - 'package.json'
@@ -38,6 +39,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
       - name: Install pinned dependencies
         run: npm install --no-audit --no-fund
       - name: Validate required static files
@@ -67,6 +71,9 @@ jobs:
           test -s dist/index.html
           test -s dist/app.html
           grep -q 'noindex,nofollow,noarchive' dist/app.html
+          test "$(grep -c 'CREATE TABLE IF NOT EXISTS public\.' database/migrations/0001_core_schema.sql)" -eq 12
+          test "$(grep -c 'ENABLE ROW LEVEL SECURITY' database/migrations/0001_core_schema.sql)" -eq 12
+          test "$(grep -c 'CREATE POLICY' database/migrations/0002_rls_policies.sql)" -eq 39
       - name: Smoke test Neon development function
         run: |
           curl --fail --silent --show-error --retry 3 --retry-delay 2 --max-time 30 https://br-morning-recipe-aov26ci2-health.compute.c-2.ap-southeast-1.aws.neon.tech/health | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const j=JSON.parse(s);if(j.ok!==true)process.exit(1);console.log('Neon function health:',j.status)})"
@@ -83,6 +90,11 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install pinned dependencies
+        run: npm install --no-audit --no-fund
       - name: Assemble public artifact without repository docs or migrations
         env:
           VITE_NEON_AUTH_URL: https://ep-little-field-aomzop7h.neonauth.c-2.ap-southeast-1.aws.neon.tech/neondb/auth
