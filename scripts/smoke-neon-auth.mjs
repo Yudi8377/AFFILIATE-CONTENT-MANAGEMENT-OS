@@ -6,7 +6,7 @@ if (!authBase || !dataBase) throw new Error('Neon smoke-test URLs are required')
 
 async function authRequest(path, options, cookieJar) {
   const opts = options || {};
-  const headers = new Headers({ Accept: 'application/json' });
+  const headers = new Headers({ Accept: 'application/json', Origin: 'https://yudi8377.github.io' });
   if (opts.body !== undefined) headers.set('Content-Type', 'application/json');
   if (cookieJar && cookieJar.size) headers.set('Cookie', Array.from(cookieJar.entries()).map(([k, v]) => k + '=' + v).join('; '));
   const response = await fetch(authBase + '/' + path, {
@@ -46,7 +46,7 @@ async function createIdentity(label) {
 }
 async function dataRequest(table, token, options) {
   const opts = options || {};
-  const headers = new Headers({ Accept: 'application/json' });
+  const headers = new Headers({ Accept: 'application/json', Origin: 'https://yudi8377.github.io' });
   if (token) headers.set('Authorization', 'Bearer ' + token);
   if (opts.body !== undefined) headers.set('Content-Type', 'application/json');
   if (opts.method && opts.method !== 'GET') headers.set('Prefer', 'return=representation');
