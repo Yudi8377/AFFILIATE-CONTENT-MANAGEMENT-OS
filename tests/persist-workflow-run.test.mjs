@@ -41,7 +41,7 @@ test('records failed local workflows as failed without exposing exception text',
   const calls = [];
   const api = async (_table, options) => {
     calls.push(options);
-    return options.method === 'POST' ? [{ id: 'run-456' }] : [];
+    return options.method === 'POST' ? [{ id: 'run-456' }] : [{ id: 'run-456', status: options.body.status }];
   };
   await persistWorkflowRun({
     api, workspaceId: 'w', userId: 'u', startedAt: '2026-10-26T10:00:00Z', finishedAt: '2026-10-26T10:00:01Z',
