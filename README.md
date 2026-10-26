@@ -48,13 +48,14 @@ Affiliate marketing operating system with an Indonesian-first public website, a 
 - **DATABASE APPLIED:** migrations 0001–0007 applied to the designated development and production branches.
 - **CI discipline:** pull-request validation checks out the exact head SHA, runs syntax checks, unit tests, static generation, and Neon/RLS smoke tests. If no dedicated read-only Neon publishing JWT is configured, static generation warns and produces empty article/product collections rather than failing the whole build; real CMS publishing still requires verified read access.
 - **TESTED:** only the checks and tests that show successful status in GitHub Actions; review the latest run before treating a release as verified.
-- **NOT YET LIVE VERIFIED:** the changes on foundation/icda-baseline must pass CI and be merged before the new public website and workspace are deployed from main; production browser sign-in, initial platform-admin bootstrap, scheduled CMS publishing, and the browser media-rendering experience still require direct live verification.
+- **NOT YET LIVE VERIFIED:** GitHub repository metadata currently reports Pages disabled. The deployment workflow now requests Pages enablement during deployment, but it has not run from main; no live deployment is claimed. Production browser sign-in, initial platform-admin bootstrap, scheduled CMS publishing, and the browser media-rendering experience still require direct live verification. The scheduled CMS workflow fails closed unless the GitHub Actions secret NEON_PUBLIC_READ_TOKEN is configured; without it, no CMS refresh is deployed.
 - **NOT IMPLEMENTED:** external generative AI image/video APIs, AI voice generation, server-side media storage, automatic social publishing, real search-volume/difficulty integrations, production-connected multi-agent runs and persisted agent audit UI, final accounting posting, payroll approval/payment, and tax/legal compliance certification.
 
 ## Production prerequisites
 
-1. Keep main as the deployment source and merge only after the exact PR head CI is green.
-2. After deployment, register the owner's account through the production workspace.
-3. Bootstrap that exact user ID as the first platform administrator through a verified database procedure; do not create a privileged identity based on a guessed email.
-4. Verify sign-in, workspace isolation, product publishing, public sitemap, scheduled CMS workflow, and video rendering in the production browser.
-5. Review privacy, affiliate disclosure, tax/accounting rules, and applicable legal obligations before commercial launch.
+1. Keep main as the deployment source and merge only after the exact PR head CI is green and deployment changes have been reviewed.
+2. Add a narrowly scoped, read-only Neon Data API JWT as the GitHub Actions secret NEON_PUBLIC_READ_TOKEN for the scheduled CMS workflow; verify that it can read only published public records and cannot write data. Do not paste tokens into source control or chat.
+3. After deployment, register the owner's account through the production workspace.
+4. Bootstrap that exact user ID as the first platform administrator through a verified database procedure; do not create a privileged identity based on a guessed email.
+5. Verify sign-in, workspace isolation, product publishing, public sitemap, scheduled CMS workflow, and video rendering in the production browser.
+6. Review privacy, affiliate disclosure, tax/accounting rules, and applicable legal obligations before commercial launch.
