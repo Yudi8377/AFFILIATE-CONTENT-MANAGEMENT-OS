@@ -68,7 +68,7 @@ jobs:
           test "$(grep -c 'CREATE TABLE IF NOT EXISTS public\.' database/migrations/0001_core_schema.sql)" -eq 12
           test "$(grep -c 'ENABLE ROW LEVEL SECURITY' database/migrations/0001_core_schema.sql)" -eq 12
           test "$(grep -c 'CREATE POLICY' database/migrations/0002_rls_policies.sql)" -eq 39
-          test "$(grep -c 'CREATE TABLE IF NOT EXISTS public\\.' database/migrations/0003_business_modules_and_public_cms.sql)" -eq 15
+          test "$(grep -c 'CREATE TABLE IF NOT EXISTS public\.' database/migrations/0003_business_modules_and_public_cms.sql)" -eq 15
           test "$(grep -c 'ENABLE ROW LEVEL SECURITY' database/migrations/0003_business_modules_and_public_cms.sql)" -eq 15
           test "$(grep -c 'CREATE POLICY' database/migrations/0003_business_modules_and_public_cms.sql)" -eq 59
           test "$(grep -c 'DROP POLICY IF EXISTS' database/migrations/0004_license_write_hardening.sql)" -eq 3
