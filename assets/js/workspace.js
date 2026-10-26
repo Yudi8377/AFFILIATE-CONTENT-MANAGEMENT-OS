@@ -532,6 +532,8 @@ $('refresh-crm').addEventListener('click', () => loadContacts().catch((e) => mes
 $('refresh-expenses').addEventListener('click', () => loadExpenses().catch((e) => message('workspace-message', e.message, 'error')));
 $('refresh-employees').addEventListener('click', () => loadEmployees().catch((e) => message('workspace-message', e.message, 'error')));
 $('refresh-inventory').addEventListener('click', () => loadInventory().catch((e) => message('workspace-message', e.message, 'error')));
+$('refresh-accounting').addEventListener('click', () => loadAccounting().catch((e) => message('workspace-message', e.message, 'error')));
+$('refresh-payroll').addEventListener('click', () => refreshAll());
 $('print-button').addEventListener('click', () => window.print());
 
 bindForm('product-form', async (values) => {
@@ -682,6 +684,75 @@ bindForm('inventory-form', async (values) => {
   message('workspace-message', 'Item inventaris tersimpan.', 'success');
 });
 
+
+bindForm('ledger-form', async (values) => {
+  requireWorkspace();
+  const code = String(values.get('account_code') || '').trim();
+  const name = String(values.get('account_name') || '').trim();
+  if (!code || !name) throw new Error('Kode dan nama akun wajib diisi.');
+  await api('ledger_accounts', { method: 'POST', body: {
+    workspace_id: state.workspace.id, account_code: code, account_name: name,
+    account_type: String(values.get('account_type') || 'asset'),
+    normal_balance: String(values.get('normal_balance') || 'debit'), is_active: true,
+    created_by: state.user.id
+  }});
+  message('workspace-message', 'Akun buku besar tersimpan.', 'success');
+});
+bindForm('journal-form', async (values) => {
+  requireWorkspace();
+  const number = String(values.get('entry_number') || '').trim();
+  const description = String(values.get('description') || '').trim();
+  const date = String(values.get('entry_date') || '').trim() || new Date().toISOString().slice(0, 10);
+  if (!number || !description) throw new Error('Nomor jurnal dan deskripsi wajib diisi.');
+  await api('journal_entries', { method: 'POST', body: {
+    workspace_id: state.workspace.id, entry_number: number, entry_date: date,
+    description, status: 'draft', created_by: state.user.id
+  }});
+  message('workspace-message', 'Jurnal dibuat sebagai draft. Tambahkan baris debit dan kredit sebelum review.', 'success');
+});
+bindForm('journal-line-form', async (values) => {
+  requireWorkspace();
+  const entryId = String(values.get('journal_entry_id') || '').trim();
+  const accountId = String(values.get('account_id') || '').trim();
+  const debit = Number(values.get('debit') || 0);
+  const credit = Number(values.get('credit') || 0);
+  if (!entryId || !accountId) throw new Error('Pilih jurnal draft dan akun.');
+  if (!Number.isFinite(debit) || !Number.isFinite(credit) || debit < 0 || credit < 0 || !((debit > 0 && credit === 0) || (credit > 0 && debit === 0))) throw new Error('Isi hanya satu sisi: debit atau kredit, dengan nilai lebih dari nol.');
+  await api('journal_lines', { method: 'POST', body: {
+    workspace_id: state.workspace.id, journal_entry_id: entryId, account_id: accountId,
+    description: String(values.get('description') || '').trim(), debit, credit
+  }});
+  message('workspace-message', 'Baris jurnal ditambahkan. Total akan dihitung ulang.', 'success');
+});
+bindForm('payroll-period-form', async (values) => {
+  requireWorkspace();
+  const start = String(values.get('period_start') || '').trim();
+  const end = String(values.get('period_end') || '').trim();
+  if (!start || !end || end < start) throw new Error('Tanggal periode payroll tidak valid.');
+  await api('payroll_periods', { method: 'POST', body: {
+    workspace_id: state.workspace.id, period_start: start, period_end: end,
+    status: 'draft', created_by: state.user.id
+  }});
+  message('workspace-message', 'Periode payroll dibuat sebagai draft.', 'success');
+});
+bindForm('payroll-item-form', async (values) => {
+  requireWorkspace();
+  const periodId = String(values.get('payroll_period_id') || '').trim();
+  const employeeId = String(values.get('employee_id') || '').trim();
+  if (!periodId || !employeeId) throw new Error('Pilih periode payroll dan karyawan aktif.');
+  const base = Number(values.get('base_salary') || 0);
+  const allowances = Number(values.get('allowances') || 0);
+  const deductions = Number(values.get('deductions') || 0);
+  const tax = Number(values.get('tax_amount') || 0);
+  if ([base,allowances,deductions,tax].some((n) => !Number.isFinite(n) || n < 0)) throw new Error('Komponen payroll harus berupa angka nol atau lebih.');
+  if (base + allowances < deductions + tax) throw new Error('Net pay tidak boleh negatif.');
+  await api('payroll_items', { method: 'POST', body: {
+    workspace_id: state.workspace.id, payroll_period_id: periodId, employee_id: employeeId,
+    base_salary: base, allowances, deductions, tax_amount: tax,
+    notes: String(values.get('notes') || '').trim()
+  }});
+  message('workspace-message', 'Item payroll tersimpan. Net pay dihitung oleh database.', 'success');
+});
 
 function renderSeoPlan(plan) {
   state.seoPlan = plan;
