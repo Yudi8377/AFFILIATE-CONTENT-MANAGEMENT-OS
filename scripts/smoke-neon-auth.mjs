@@ -90,6 +90,11 @@ async function main() {
   const ownerRead = await dataRequest('affiliate_products', owner.token, { query: 'select=id,name&workspace_id=eq.' + workspaceId });
   assert(ownerRead.ok && Array.isArray(ownerRead.data) && ownerRead.data.length === 1, 'Workspace owner could not read own product: ' + JSON.stringify(ownerRead));
 
+  const selfLicenseAttempt = await dataRequest('license_entitlements', owner.token, { method: 'POST', body: { workspace_id: workspaceId, license_code: 'ci-self-license-' + randomBytes(5).toString('hex'), plan_code: 'premium', status: 'active' } });
+  assert(!selfLicenseAttempt.ok, 'Workspace owner must not be able to issue a license to themselves.');
+  const selfAdminAttempt = await dataRequest('platform_admins', owner.token, { method: 'POST', body: { user_id: owner.user.id, status: 'active', reason: 'must be denied to browser clients' } });
+  assert(!selfAdminAttempt.ok, 'A regular user must not be able to grant themselves platform-admin privileges.');
+
   const other = await createIdentity('other');
   const otherRead = await dataRequest('affiliate_products', other.token, { query: 'select=id,name' });
   assert(otherRead.ok && Array.isArray(otherRead.data) && otherRead.data.length === 0, 'RLS isolation failed: another user can see workspace products.');
