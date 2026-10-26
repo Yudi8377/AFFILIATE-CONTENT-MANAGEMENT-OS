@@ -91,3 +91,5 @@ CREATE POLICY audit_select_admin ON public.audit_events FOR SELECT TO authentica
 
 CREATE POLICY agent_runs_select_scoped ON public.agent_runs FOR SELECT TO authenticated USING (requested_by = (SELECT auth.user_id()) OR public.has_workspace_role(workspace_id, ARRAY['owner','admin']::text[]));
 CREATE POLICY agent_runs_insert_editor ON public.agent_runs FOR INSERT TO authenticated WITH CHECK (requested_by = (SELECT auth.user_id()) AND status = 'queued' AND output IS NULL AND actual_cost IS NULL AND public.has_workspace_role(workspace_id, ARRAY['owner','admin','editor']::text[]));
+
+NOTIFY pgrst, 'reload schema';
