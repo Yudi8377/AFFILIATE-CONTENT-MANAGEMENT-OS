@@ -11,6 +11,7 @@ on:
       - 'vite.config.js'
       - 'database/**'
       - 'scripts/**'
+      - 'tests/**'
       - 'neon/functions/**'
       - '.github/workflows/ci.yml'
       - '.github/workflows/branch-checks.yml'
@@ -61,6 +62,7 @@ jobs:
           VITE_NEON_DATA_API_URL: https://ep-little-field-aomzop7h.apirest.c-2.ap-southeast-1.aws.neon.tech/neondb/rest/v1
         run: |
           npm run check
+          npm test
           npm run build
           cp robots.txt sitemap.xml dist/
           test -s dist/index.html
