@@ -14,6 +14,7 @@ test('generates ten clusters with seven long-tail keywords each', () => {
   assert.equal(plan.rows.length, 70);
   assert.equal(plan.rows.every((row) => row.searchVolume === null && row.keywordDifficulty === null), true);
   assert.equal(plan.rows.every((row) => row.metricStatus === 'not measured' && row.reviewRequired), true);
+  assert.equal(plan.rows.every((row) => row.metaDescription.length >= 120 && row.metaDescription.length <= 155), true);
 });
 
 test('generates a meta description within the recommended character range', () => {
