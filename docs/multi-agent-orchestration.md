@@ -17,7 +17,7 @@ The reference URL supplied for the Transmind Nexus page could not be retrieved b
 7. **Cost & Provider Gate** — block external providers unless free quota, commercial rights, privacy terms, and a real integration test are verified.
 8. **Human Approval Gate** — require human review before public publication, irreversible actions, or sensitive changes.
 
-These roles describe the intended workflow. The SEO planner and campaign strategist now run through the coordinator with a downstream quality reviewer in the workspace UI. Storyboard and affiliate-compliance helpers still run as separate local tools; they are not yet part of one end-to-end cross-domain workflow. No unimplemented role should be shown as active.
+These roles describe the intended workflow. The SEO planner and campaign strategist now run through the coordinator with a downstream quality reviewer in the workspace UI. The workspace initializes both the campaign planner and the local studio. SEO and campaign workflow summaries are written to `agent_runs` through the authenticated Data API: raw input and agent output are excluded from the audit payload; final records use `needs_review` (or `failed`) and `provider_status=unverified`. Storyboard and affiliate-compliance helpers still run as separate local tools; they are not yet part of one end-to-end cross-domain workflow. No unimplemented role should be shown as active.
 
 ## Execution contract
 
