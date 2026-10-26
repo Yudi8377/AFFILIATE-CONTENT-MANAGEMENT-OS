@@ -1,24 +1,24 @@
 const CATEGORY_TEMPLATES = {
   id: [
     ['Topik inti dan definisi','informational',['pengertian','arti dan fungsi','panduan lengkap','cara kerja','fitur utama','contoh penggunaan','hal yang perlu diketahui']],
-    ['Manfaat dan penggunaan','informational',['manfaat utama','kelebihan dan kekurangan','contoh penggunaan','untuk pemula','untuk bisnis kecil','kapan perlu digunakan','batasan penggunaan']],
+    ['Manfaat dan penggunaan','informational',['manfaat utama','kelebihan dan kekurangan','contoh penggunaan nyata','untuk pemula','untuk bisnis kecil','kapan perlu digunakan','batasan penggunaan']],
     ['Tutorial dan langkah praktis','informational',['cara menggunakan','panduan langkah demi langkah','cara memulai','tips penggunaan','praktik terbaik','alur kerja','kesalahan yang harus dihindari']],
     ['Perbandingan dan alternatif','commercial',['perbandingan','vs alternatif lain','alternatif terbaik','review dan evaluasi','kelebihan dibanding pesaing','pro dan kontra','cara memilih opsi terbaik']],
     ['Harga dan biaya','commercial',['harga','biaya penggunaan','paket gratis','biaya tersembunyi','perbandingan biaya','anggaran pemula','nilai dibanding biaya']],
     ['Pembelian dan konversi','transactional',['tempat membeli','daftar sekarang','mulai menggunakan','promo terbaru','kode diskon','penawaran resmi','cara mendapatkan akses']],
-    ['Audiens dan industri','commercial',['untuk pemula','untuk affiliate marketer','untuk content creator','untuk UMKM','untuk ecommerce','untuk publisher','untuk agensi pemasaran']],
+    ['Audiens dan industri','commercial',['untuk kreator baru','untuk affiliate marketer','untuk content creator','untuk UMKM','untuk ecommerce','untuk publisher','untuk agensi pemasaran']],
     ['Masalah dan solusi','informational',['masalah umum','cara mengatasi error','solusi kendala','cara memperbaiki','risiko penggunaan','troubleshooting','cara menghindari kesalahan']],
     ['Kepercayaan dan kepatuhan','informational',['aturan disclosure affiliate','privasi dan keamanan','hak penggunaan komersial','kebijakan ulasan','syarat dan ketentuan','risiko kepatuhan','daftar periksa sebelum publikasi']],
     ['Strategi dan kinerja','commercial',['strategi pemasaran','optimasi konversi','cara mengukur ROI','rencana kampanye','metrik performa','strategi pertumbuhan','contoh studi kasus']]
   ],
   en: [
     ['Core topic and definition','informational',['meaning and definition','how it works','complete guide','key features','use examples','what to know','main purpose']],
-    ['Benefits and use cases','informational',['key benefits','pros and cons','use cases','for beginners','for small businesses','when to use it','limitations to consider']],
+    ['Benefits and use cases','informational',['key benefits','key advantages','use cases','for beginners','for small businesses','when to use it','limitations to consider']],
     ['Tutorials and practical steps','informational',['how to use','step by step guide','how to get started','practical tips','best practices','workflow examples','mistakes to avoid']],
     ['Comparisons and alternatives','commercial',['comparison','vs alternatives','best alternatives','review and evaluation','advantages over competitors','pros and cons','how to choose']],
     ['Pricing and cost','commercial',['pricing','cost to use','free plan','hidden costs','cost comparison','starter budget','value for money']],
     ['Purchase and conversion','transactional',['where to buy','sign up now','get started','latest promotion','discount code','official offer','how to access']],
-    ['Audience and industry','commercial',['for beginners','for affiliate marketers','for content creators','for small businesses','for ecommerce','for publishers','for marketing agencies']],
+    ['Audience and industry','commercial',['for new creators','for affiliate marketers','for content creators','for small businesses','for ecommerce','for publishers','for marketing agencies']],
     ['Problems and solutions','informational',['common problems','how to fix errors','solutions to common issues','troubleshooting guide','usage risks','common mistakes','how to prevent issues']],
     ['Trust and compliance','informational',['affiliate disclosure rules','privacy and security','commercial usage rights','review policy','terms and conditions','compliance risks','pre-publication checklist']],
     ['Strategy and performance','commercial',['marketing strategy','conversion optimization','how to measure ROI','campaign plan','performance metrics','growth strategy','case study']]
