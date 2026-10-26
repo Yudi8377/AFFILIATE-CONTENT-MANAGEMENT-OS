@@ -467,3 +467,5 @@ DROP TRIGGER IF EXISTS trg_audit_inventory ON public.inventory_items;
 CREATE TRIGGER trg_audit_inventory AFTER INSERT OR UPDATE OR DELETE ON public.inventory_items FOR EACH ROW EXECUTE FUNCTION public.log_audit_event();
 DROP TRIGGER IF EXISTS trg_audit_purchase_orders ON public.purchase_orders;
 CREATE TRIGGER trg_audit_purchase_orders AFTER INSERT OR UPDATE OR DELETE ON public.purchase_orders FOR EACH ROW EXECUTE FUNCTION public.log_audit_event();
+
+NOTIFY pgrst, 'reload schema';
