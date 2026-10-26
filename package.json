@@ -12,6 +12,6 @@
     "@neondatabase/auth": "0.7.0-beta"
   },
   "devDependencies": {
-    "vite": "6.4.1"
+    "vite": "6.4.5"
   }
 }
