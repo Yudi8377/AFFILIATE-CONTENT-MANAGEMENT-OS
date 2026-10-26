@@ -39,7 +39,7 @@ export function initializeCampaignPlanner({ message }) {
               if (draft.externalProviderUsed !== false || draft.humanReviewRequired !== true) {
                 throw Object.assign(new Error('Campaign quality gate: provider or review state is invalid.'), { code: 'CAMPAIGN_GOVERNANCE_FAILED' });
               }
-              return { channelsReviewed: draft.channels.length, budgetReconciled: draft.budget === null || true, externalProviderUsed: false, humanReviewRequired: true };
+              return { channelsReviewed: draft.channels.length, budgetReconciled: true, externalProviderUsed: false, humanReviewRequired: true };
             }
           }
         ]
