@@ -71,7 +71,7 @@ async function writePage(relativePath, html) {
 }
 async function main() {
   const [articles, products] = await Promise.all([
-    getRows('content_items', 'select=id,title,slug,meta_title,meta_description,body,locale,published_at,content_type&status=eq.published&published_at=not.is.null&order=published_at.desc&limit=500'),
+    getRows('content_items', 'select=id,title,slug,meta_title,meta_description,body,locale,published_at,updated_at,content_type,disclosure_required&status=eq.published&published_at=not.is.null&order=published_at.desc&limit=500'),
     getRows('affiliate_products', 'select=id,name,merchant_name,category,source_url,price_amount,currency,public_slug,public_description,published_at&is_public=eq.true&status=eq.active&public_slug=not.is.null&order=published_at.desc&limit=500')
   ]);
   const sitemap = new Set([siteBase, siteBase + 'privacy.html', siteBase + 'disclosure.html']);
@@ -84,8 +84,9 @@ async function main() {
     const title = String(article.meta_title || article.title || '').trim().slice(0, 70);
     const description = meta(article.meta_description, bodyText.slice(0, 150));
     const canonical = siteBase + 'articles/' + articleSlug + '/';
-    const body = renderTextBody(bodyText);
-    const jsonLd = { '@context': 'https://schema.org', '@type': 'Article', headline: title, description, datePublished: article.published_at, dateModified: article.published_at, mainEntityOfPage: canonical, inLanguage: article.locale || 'id-ID', publisher: { '@type': 'Organization', name: 'Affiliate Content OS' } };
+    const disclosure = article.disclosure_required ? '<p class="disclosure">Affiliate disclosure: this page may contain affiliate links. The publisher may earn a commission if you purchase through a link, without changing the price you pay. Verify claims and current terms with the merchant.</p>' : '';
+    const body = disclosure + renderTextBody(bodyText);
+    const jsonLd = { '@context': 'https://schema.org', '@type': 'Article', headline: title, description, datePublished: article.published_at, dateModified: article.updated_at || article.published_at, mainEntityOfPage: canonical, inLanguage: article.locale || 'id-ID', publisher: { '@type': 'Organization', name: 'Affiliate Content OS' } };
     await writePage('articles/' + articleSlug + '/index.html', shell({ title, description, canonical, body, jsonLd, kind: 'article' }));
     sitemap.add(canonical); articleLinks.push({ title, canonical, description }); generatedArticles++;
   }
@@ -98,7 +99,7 @@ async function main() {
     const canonical = siteBase + 'products/' + productSlug + '/';
     const price = product.price_amount == null ? '' : '<p>Price supplied by publisher: ' + esc(new Intl.NumberFormat('id-ID').format(Number(product.price_amount)) + ' ' + (product.currency || 'IDR')) + '. Confirm the current price with the merchant.</p>';
     const body = '<p>' + esc(product.public_description) + '</p><p class="disclosure">Affiliate disclosure: this page may contain an affiliate link. The publisher may earn a commission if you purchase through it, without changing the price you pay. Product details and prices can change; verify them with the merchant.</p>' + price + '<p><a class="cta" href="' + esc(sourceUrl) + '" rel="sponsored nofollow noopener" target="_blank">View product at merchant</a></p>';
-    const jsonLd = { '@context': 'https://schema.org', '@type': 'Product', name: title, description: String(product.public_description), category: product.category || undefined, brand: product.merchant_name ? { '@type': 'Brand', name: product.merchant_name } : undefined, offers: product.price_amount == null ? undefined : { '@type': 'Offer', price: String(product.price_amount), priceCurrency: product.currency || 'IDR', url: sourceUrl, availability: 'https://schema.org/InStock' }, url: canonical };
+    const jsonLd = { '@context': 'https://schema.org', '@type': 'Product', name: title, description: String(product.public_description), category: product.category || undefined, brand: product.merchant_name ? { '@type': 'Brand', name: product.merchant_name } : undefined, url: canonical };
     await writePage('products/' + productSlug + '/index.html', shell({ title, description, canonical, body, jsonLd, kind: 'product' }));
     sitemap.add(canonical); productLinks.push({ title, canonical, description }); generatedProducts++;
   }
