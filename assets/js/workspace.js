@@ -191,9 +191,61 @@ async function loadContent() {
   if (!rows.length) empty('content-list', 'Belum ada draft. Buat draft pertama melalui formulir di atas.');
   rows.forEach((row) => { const item = record('content-list', row.title, [row.slug, row.content_type, row.meta_description], row.status); addContentWorkflowActions(item, row); if (state.role === 'owner' || state.role === 'admin') addDeleteAction(item, 'content_items', row.id); });
 }
+async function loadCampaigns() {
+  const rows = await api('campaigns', { query: 'select=id,name,channel,status,start_date,end_date,budget_amount,currency,created_at&workspace_id=eq.' + state.workspace.id + '&order=created_at.desc&limit=100' });
+  $('campaign-count').textContent = String(rows.length);
+  $('campaigns-list').replaceChildren();
+  if (!rows.length) empty('campaigns-list', 'Belum ada kampanye. Buat kampanye pertama untuk mencatat tujuan, channel, jadwal, dan anggaran.');
+  rows.forEach((row) => {
+    const budget = row.budget_amount == null ? 'Budget not set' : new Intl.NumberFormat('id-ID').format(Number(row.budget_amount)) + ' ' + (row.currency || 'IDR');
+    const item = record('campaigns-list', row.name, [row.channel, 'Start: ' + (row.start_date || 'not set'), 'End: ' + (row.end_date || 'not set'), budget], row.status);
+    if ((state.role === 'owner' || state.role === 'admin') && row.status === 'draft') addDeleteAction(item, 'campaigns', row.id);
+  });
+}
+async function loadContacts() {
+  const rows = await api('crm_contacts', { query: 'select=id,name,email,phone,company,contact_type,source,status,created_at&workspace_id=eq.' + state.workspace.id + '&order=created_at.desc&limit=200' });
+  $('crm-count').textContent = String(rows.length);
+  $('crm-list').replaceChildren();
+  if (!rows.length) empty('crm-list', 'Belum ada kontak CRM. Tambahkan lead, customer, partner, publisher, atau merchant.');
+  rows.forEach((row) => {
+    const item = record('crm-list', row.name, [row.company, row.email, row.phone, row.source], row.status);
+    if ((state.role === 'owner' || state.role === 'admin' || state.role === 'crm_manager') && row.status !== 'archived') addDeleteAction(item, 'crm_contacts', row.id);
+  });
+}
+async function loadExpenses() {
+  const rows = await api('expenses', { query: 'select=id,vendor_name,description,category,amount,currency,status,incurred_on,created_at&workspace_id=eq.' + state.workspace.id + '&order=created_at.desc&limit=200' });
+  $('expenses-list').replaceChildren();
+  if (!rows.length) empty('expenses-list', 'Belum ada pengeluaran tercatat.');
+  rows.forEach((row) => {
+    const amount = new Intl.NumberFormat('id-ID').format(Number(row.amount)) + ' ' + (row.currency || 'IDR');
+    const item = record('expenses-list', row.vendor_name, [row.description, row.category, amount, 'Date: ' + row.incurred_on], row.status);
+    if ((state.role === 'owner' || state.role === 'admin' || state.role === 'finance_manager') && row.status === 'draft') addDeleteAction(item, 'expenses', row.id);
+  });
+}
+async function loadEmployees() {
+  const rows = await api('employees', { query: 'select=id,employee_code,full_name,email,department,employment_type,status,start_date&workspace_id=eq.' + state.workspace.id + '&order=created_at.desc&limit=200' });
+  $('employees-list').replaceChildren();
+  if (!rows.length) empty('employees-list', 'Belum ada data karyawan.');
+  rows.forEach((row) => {
+    const item = record('employees-list', row.full_name, [row.employee_code, row.email, row.department, row.employment_type, 'Start: ' + (row.start_date || 'not set')], row.status);
+    if (state.role === 'owner' || state.role === 'admin') addDeleteAction(item, 'employees', row.id);
+  });
+}
+async function loadInventory() {
+  const rows = await api('inventory_items', { query: 'select=id,sku,name,unit,quantity_on_hand,reorder_level,unit_cost,status&workspace_id=eq.' + state.workspace.id + '&order=created_at.desc&limit=200' });
+  $('inventory-count').textContent = String(rows.length);
+  $('inventory-list').replaceChildren();
+  if (!rows.length) empty('inventory-list', 'Belum ada item inventaris.');
+  rows.forEach((row) => {
+    const stock = Number(row.quantity_on_hand) + ' ' + row.unit + ' · reorder at ' + Number(row.reorder_level);
+    const cost = row.unit_cost == null ? 'Cost not set' : new Intl.NumberFormat('id-ID').format(Number(row.unit_cost)) + ' IDR / unit';
+    const item = record('inventory-list', row.name, [row.sku, stock, cost], row.status);
+    if ((state.role === 'owner' || state.role === 'admin' || state.role === 'inventory_manager') && row.status === 'active') addDeleteAction(item, 'inventory_items', row.id);
+  });
+}
 async function refreshAll() {
   try {
-    await Promise.all([loadProducts(), loadKeywords(), loadContent()]);
+    await Promise.all([loadProducts(), loadKeywords(), loadContent(), loadCampaigns(), loadContacts(), loadExpenses(), loadEmployees(), loadInventory()]);
     message('workspace-message', 'Data berhasil dimuat dari Neon Data API.', 'success');
   } catch (error) { message('workspace-message', error.message || 'Gagal memuat data.', 'error'); }
 }
