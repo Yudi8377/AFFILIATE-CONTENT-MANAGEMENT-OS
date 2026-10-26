@@ -177,6 +177,20 @@ async function loadProducts() {
     const item = record('products-list', row.name, [row.merchant_name, row.category, price, row.source_url, publicState, row.public_description], row.status);
     if (['owner','admin','editor'].includes(state.role)) {
       const actions = document.createElement('div'); actions.className = 'record-actions';
+      if (!row.is_public) {
+        const edit = document.createElement('button'); edit.type = 'button'; edit.className = 'button button-small button-ghost'; edit.textContent = 'Edit produk';
+        edit.addEventListener('click', () => {
+          state.editingProductId = row.id;
+          const form = $('product-form');
+          ['name','source_url','affiliate_url','merchant_name','category','public_slug','public_description','price_amount'].forEach((key) => {
+            const field = form.elements.namedItem(key); if (field) field.value = row[key] == null ? '' : row[key];
+          });
+          const submit = form.querySelector('button[type="submit"]'); submit.textContent = 'Simpan perubahan produk'; submit.dataset.label = 'Simpan perubahan produk';
+          form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          message('workspace-message', 'Mode edit produk aktif. Produk yang diedit tetap privat sampai dipublikasikan secara eksplisit.', 'success');
+        });
+        actions.append(edit);
+      }
       if (row.status !== 'active' && row.status !== 'archived') {
         const activate = document.createElement('button'); activate.type = 'button'; activate.className = 'button button-small'; activate.textContent = 'Aktifkan produk';
         activate.addEventListener('click', async () => { try { await api('affiliate_products', { method: 'PATCH', query: 'id=eq.' + encodeURIComponent(row.id), body: { status: 'active' } }); await refreshAll(); } catch (e) { message('workspace-message', e.message, 'error'); } });
