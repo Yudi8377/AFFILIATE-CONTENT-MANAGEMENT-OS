@@ -32,7 +32,7 @@ export function generateCampaignPlan(input) {
     ];
   const slogans = locale === 'en'
     ? ['Choose with clearer information','Compare first. Decide with confidence.','Know the details before you buy','A practical look at ' + productName,'Your checklist for a better-informed choice']
-    : ['Pilih dengan informasi yang lebih jelas','Bandingkan dulu, putuskan dengan yakin','Kenali detail sebelum membeli','Ulas ' + productName ' secara praktis','Checklist sebelum Anda memilih'];
+    : ['Pilih dengan informasi yang lebih jelas','Bandingkan dulu, putuskan dengan yakin','Kenali detail sebelum membeli','Ulas ' + productName + ' secara praktis','Checklist sebelum Anda memilih'];
   const kpis = locale === 'en'
     ? ['Qualified clicks and click-through rate','Conversion rate and earnings per click','Commission value and approved transactions','Refund/cancellation rate','Disclosure and landing-page quality checks']
     : ['Klik berkualitas dan click-through rate','Conversion rate dan earnings per click','Nilai komisi dan transaksi yang disetujui','Tingkat refund/pembatalan','Pemeriksaan disclosure dan kualitas landing page'];
