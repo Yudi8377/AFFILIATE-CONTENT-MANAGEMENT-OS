@@ -1,14 +1,55 @@
 import { generateCampaignPlan } from './agents/campaign-planner.js';
+import { runAgentWorkflow } from './agents/orchestrator.js';
 const $ = (id) => document.getElementById(id);
 export function initializeCampaignPlanner({ message }) {
   let plan = null;
-  $('campaign-planner-form').addEventListener('submit', (event) => {
+  $('campaign-planner-form').addEventListener('submit', async (event) => {
     event.preventDefault();
+    const form = event.currentTarget;
+    const submitButton = form.querySelector('button[type="submit"]');
+    if (submitButton) submitButton.disabled = true;
     try {
-      const form = event.currentTarget;
       const data = Object.fromEntries(new FormData(form).entries());
       data.channels = new FormData(form).getAll('channels');
-      plan = generateCampaignPlan(data);
+      const workflow = await runAgentWorkflow({
+        workflowId: 'affiliate-campaign-planning',
+        input: data,
+        allowedCapabilities: ['campaign-planning', 'quality-review'],
+        agents: [
+          {
+            id: 'campaign-strategist',
+            capabilities: ['campaign-planning'],
+            run: ({ input }) => generateCampaignPlan(input)
+          },
+          {
+            id: 'campaign-quality-review',
+            dependsOn: ['campaign-strategist'],
+            capabilities: ['quality-review'],
+            run: ({ dependencies }) => {
+              const draft = dependencies['campaign-strategist'];
+              if (!draft.channels.length || !draft.messageAngles.length || !draft.kpis.length) {
+                throw Object.assign(new Error('Campaign quality gate: required planning sections are missing.'), { code: 'CAMPAIGN_OUTPUT_INCOMPLETE' });
+              }
+              if (draft.budget !== null) {
+                const allocated = draft.allocation.reduce((sum, item) => sum + item.allocationAmount, 0);
+                if (Math.abs(allocated - draft.budget) > 0.01) {
+                  throw Object.assign(new Error('Campaign quality gate: budget allocation does not reconcile.'), { code: 'CAMPAIGN_BUDGET_MISMATCH' });
+                }
+              }
+              if (draft.externalProviderUsed !== false || draft.humanReviewRequired !== true) {
+                throw Object.assign(new Error('Campaign quality gate: provider or review state is invalid.'), { code: 'CAMPAIGN_GOVERNANCE_FAILED' });
+              }
+              return { channelsReviewed: draft.channels.length, budgetReconciled: draft.budget === null || true, externalProviderUsed: false, humanReviewRequired: true };
+            }
+          }
+        ]
+      });
+      if (workflow.status !== 'completed') {
+        const failed = Object.values(workflow.results).find((result) => result.status === 'failed');
+        throw new Error(failed?.errorCode || 'Multi-agent campaign workflow did not complete.');
+      }
+      plan = workflow.results['campaign-strategist'].output;
+      const review = workflow.results['campaign-quality-review'].output;
       const root = $('campaign-plan-summary'); root.replaceChildren();
       const heading = document.createElement('h3'); heading.textContent = 'Strategic brief'; root.append(heading);
       const intro = document.createElement('p'); intro.textContent = 'Audience: ' + plan.audience + ' · Goal: ' + plan.goal + ' · ' + (plan.budget === null ? 'Budget not set' : new Intl.NumberFormat('id-ID').format(plan.budget) + ' IDR'); root.append(intro);
@@ -27,8 +68,9 @@ export function initializeCampaignPlanner({ message }) {
       if (plan.allocation) list('Budget allocation', plan.allocation, (item) => item.channel + ': ' + item.allocationPercent + '% · ' + new Intl.NumberFormat('id-ID').format(item.allocationAmount) + ' IDR');
       const note = document.createElement('p'); note.className = 'form-note'; note.textContent = 'Generated with deterministic rules only. No reach, conversion, ROI, or sales results are promised. Verify all product claims and campaign terms.'; root.append(note);
       $('campaign-plan-results').hidden = false;
-      message('workspace-message', 'Rencana kampanye siap ditinjau; tidak ada provider AI eksternal yang dipanggil.', 'success');
+      message('workspace-message', 'Multi-agent kampanye selesai: strategist + quality reviewer memeriksa ' + review.channelsReviewed + ' channel. Hasil rule-based; tinjauan manusia tetap wajib.', 'success');
     } catch (error) { message('workspace-message', error.message || 'Campaign planner gagal.', 'error'); }
+    finally { if (submitButton) submitButton.disabled = false; }
   });
   $('apply-campaign-plan').addEventListener('click', () => {
     if (!plan) return;
