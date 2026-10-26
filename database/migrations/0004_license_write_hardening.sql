@@ -4,3 +4,5 @@
 DROP POLICY IF EXISTS licenses_insert_admin ON public.license_entitlements;
 DROP POLICY IF EXISTS licenses_update_admin ON public.license_entitlements;
 DROP POLICY IF EXISTS licenses_delete_admin ON public.license_entitlements;
+
+NOTIFY pgrst, 'reload schema';
