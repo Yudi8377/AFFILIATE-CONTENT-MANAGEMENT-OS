@@ -263,7 +263,8 @@ async function enterWorkspace() {
     $('auth-panel').hidden = true;
     $('dashboard-panel').hidden = false;
     $('welcome-title').textContent = state.workspace.name || 'Workspace affiliate';
-    $('welcome-subtitle').textContent = (result.user.name || result.user.email || 'Pengguna') + ' · ' + (result.user.email || '');
+    $('welcome-subtitle').textContent = (result.user.name || result.user.email || 'Pengguna') + ' · ' + (result.user.email || '') + ' · Role: ' + state.role;
+    applyRoleAccess();
     await refreshAll();
   } catch (error) {
     $('auth-panel').hidden = false;
@@ -310,6 +311,30 @@ function httpUrl(value, label) {
 }
 function requireWorkspace() {
   if (!state.workspace || !state.workspace.id || !state.user || !state.user.id) throw new Error('Workspace belum siap. Masuk kembali.');
+}
+function applyRoleAccess() {
+  const allowed = {
+    'product-form': ['owner','admin','editor'],
+    'keyword-form': ['owner','admin','editor'],
+    'content-form': ['owner','admin','editor'],
+    'campaign-form': ['owner','admin','editor'],
+    'crm-form': ['owner','admin','editor','crm_manager'],
+    'expense-form': ['owner','admin','finance_manager'],
+    'employee-form': ['owner','admin','hr_manager'],
+    'inventory-form': ['owner','admin','editor','inventory_manager']
+  };
+  Object.entries(allowed).forEach(([formId, roles]) => {
+    const form = $(formId);
+    if (form) form.hidden = !roles.includes(state.role);
+  });
+  const moduleRoles = {
+    expenses: ['owner','admin','finance_manager'],
+    employees: ['owner','admin','hr_manager']
+  };
+  document.querySelectorAll('.module-tab[data-view]').forEach((tab) => {
+    const roles = moduleRoles[tab.dataset.view];
+    tab.hidden = Boolean(roles && !roles.includes(state.role));
+  });
 }
 
 $('signin-tab').addEventListener('click', () => {
