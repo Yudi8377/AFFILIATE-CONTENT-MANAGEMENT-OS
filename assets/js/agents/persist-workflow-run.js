@@ -50,7 +50,7 @@ export async function persistWorkflowRun({ api, workspaceId, userId, workflow, s
   }]));
   const finalStatus = workflow.status === 'failed' ? 'failed' : 'needs_review';
 
-  await api('agent_runs', {
+  const finalized = await api('agent_runs', {
     method: 'PATCH',
     query: 'id=eq.' + encodeURIComponent(row.id) + '&requested_by=eq.' + encodeURIComponent(userId) + '&status=eq.queued',
     body: {
@@ -68,6 +68,10 @@ export async function persistWorkflowRun({ api, workspaceId, userId, workflow, s
       finished_at: finishedAt
     }
   });
+  const finalizedRow = Array.isArray(finalized) ? finalized[0] : finalized;
+  if (!finalizedRow || finalizedRow.status !== finalStatus) {
+    throw new Error('Audit record was not finalized by database policy; no persisted status is claimed.');
+  }
 
   return { id: row.id, status: finalStatus, humanReviewRequired: true, externalModelUsed: false };
 }
