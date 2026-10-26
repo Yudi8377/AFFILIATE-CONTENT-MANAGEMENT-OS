@@ -38,6 +38,7 @@ test('keeps supplied related keywords unique and adds a human-review flag', () =
   });
   const values = plan.rows.map((row) => row.keyword.toLocaleLowerCase());
   assert.equal(new Set(values).size, values.length);
+  assert.ok(plan.rows.length > 70 && plan.rows.length <= 73);
   assert.ok(plan.rows.some((row) => row.keyword === 'strategi konten affiliate'));
   assert.equal(plan.quality.humanReviewRequired, true);
 });
