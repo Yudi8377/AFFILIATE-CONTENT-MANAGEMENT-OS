@@ -4,7 +4,13 @@ on:
   pull_request:
     paths:
       - 'index.html'
+      - 'app.html'
+      - 'package.json'
+      - 'vite.config.js'
       - 'assets/**'
+      - 'app.html'
+      - 'package.json'
+      - 'vite.config.js'
       - 'robots.txt'
       - 'sitemap.xml'
       - '.github/workflows/pages.yml'
@@ -32,7 +38,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Install pinned dependencies
+        run: npm install --no-audit --no-fund
       - name: Validate required static files
+        env:
+          VITE_NEON_AUTH_URL: https://ep-little-field-aomzop7h.neonauth.c-2.ap-southeast-1.aws.neon.tech/neondb/auth
+          VITE_NEON_DATA_API_URL: https://ep-little-field-aomzop7h.apirest.c-2.ap-southeast-1.aws.neon.tech/neondb/rest/v1
         run: |
           test -s index.html
           test -s assets/css/site.css
@@ -45,8 +56,16 @@ jobs:
           grep -q 'application/ld+json' index.html
           grep -q 'LOCAL PREVIEW' index.html
           ! grep -R -E '(DATABASE_URL|NEON_API_KEY|OPENAI_API_KEY|sk-[A-Za-z0-9]{20,})' index.html assets
-      - name: Check JavaScript syntax
-        run: node --check assets/js/app.js
+      - name: Check JavaScript syntax and production build
+        env:
+          VITE_NEON_AUTH_URL: https://ep-little-field-aomzop7h.neonauth.c-2.ap-southeast-1.aws.neon.tech/neondb/auth
+          VITE_NEON_DATA_API_URL: https://ep-little-field-aomzop7h.apirest.c-2.ap-southeast-1.aws.neon.tech/neondb/rest/v1
+        run: |
+          npm run check
+          npm run build
+          test -s dist/index.html
+          test -s dist/app.html
+          grep -q 'noindex,nofollow,noarchive' dist/app.html
       - name: Check public SEO routes are not exposing app-only paths
         run: |
           grep -q 'Sitemap: https://yudi8377.github.io/AFFILIATE-CONTENT-MANAGEMENT-OS/sitemap.xml' robots.txt
@@ -61,12 +80,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Assemble public artifact without repository docs or migrations
-        run: |
-          mkdir -p dist/assets/css dist/assets/js
-          cp index.html robots.txt sitemap.xml dist/
-          cp assets/favicon.svg dist/assets/
-          cp assets/css/site.css dist/assets/css/
-          cp assets/js/app.js dist/assets/js/
+        env:
+          VITE_NEON_AUTH_URL: https://ep-little-field-aomzop7h.neonauth.c-2.ap-southeast-1.aws.neon.tech/neondb/auth
+          VITE_NEON_DATA_API_URL: https://ep-little-field-aomzop7h.apirest.c-2.ap-southeast-1.aws.neon.tech/neondb/rest/v1
+        run: npm run build
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
