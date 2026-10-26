@@ -1,55 +1,58 @@
 # Affiliate Content Management OS
 
-An Indonesian-first affiliate marketing operating system built incrementally with a strict Rp0-first constraint.
-
-## Product vision
-
-A single platform for affiliate creators, publishers, teams, and administrators to discover and manage products, plan SEO content, create promotional assets, track campaigns and commissions, and operate the business with auditable workflows.
+Affiliate marketing operating system with an Indonesian-first public website, a Neon-backed workspace, a restricted platform administration console, and a Rp0-first local creative studio.
 
 ## Non-negotiable constraints
 
-- Primary infrastructure: this GitHub repository and the designated Neon PostgreSQL project only.
+- Primary infrastructure is limited to this GitHub repository and the designated Neon project.
 - No required paid hosting, AI API, plugin, external backend, or third-party SaaS integration.
-- Optional external integrations may be considered only if explicitly approved later; the core product must remain useful without them.
+- External AI providers remain disabled until free quota, commercial rights, privacy terms, and a real API test are independently verified.
 - No secrets in source control, public client bundles, logs, or documentation.
 - No destructive production database changes without a tested migration and explicit approval.
-- No claim of implemented, tested, or live functionality without direct evidence.
-- Build in small, reviewable vertical slices; preserve working behavior and avoid broad rewrites.
-- Indonesian-first UX, with English SEO/content support where useful.
+- Do not claim implemented, tested, or live functionality without direct evidence.
+- Prefer small, reviewable vertical slices and preserve working behavior.
+- SEO search volume and keyword difficulty must remain Not measured unless sourced from verified data.
 
-## Product areas
+## Current architecture
 
-1. Public SEO website: fast category and product pages, editorial hub, comparison pages, guides, structured metadata, canonical URLs, sitemap, robots rules, internal links, and accessible responsive UI.
-2. User workspace: onboarding, profile, product research, affiliate links, content calendar, drafts, media library, campaigns, performance records, and export.
-3. Administrator workspace: users and roles, organizations/workspaces, content moderation, products/catalog, campaign oversight, audit log, settings, license/subscription management, and operational reporting.
-4. Business operations: CRM, CMS, task/workflow management, finance/accounting records, HR/payroll records, inventory and procurement only where they support actual affiliate operations. Modules must be phased and must not be empty decorative menus.
-5. AI-assisted studio: product brief and URL/manual input, script and storyboard assistance, image/video provider adapters, template-based rendering, cost controls, and explicit provider availability status.
-6. Multi-agent orchestration: narrow agents with typed inputs/outputs, deterministic policy gates, cost/time limits, auditability, evaluation, and human approval for sensitive actions.
+- **Public website:** static GitHub Pages build, accessible pages, canonical metadata, Open Graph, sitemap and robots rules, privacy notice, affiliate disclosure, and scheduled generation of crawlable article/product pages from published Neon records.
+- **User workspace:** Neon Auth session, workspace role checks, products and affiliate links, SEO keyword planning, content drafts and review/publish workflow, campaign planning and records, CRM contacts, expenses, HR records, inventory, double-entry journal drafts, and payroll draft periods/items.
+- **Platform administration:** restricted admin.html console for workspaces, registered profiles, platform-admin access, license entitlements, agent registry, provider registry, audit events, and recorded agent runs. Admin access requires a database-authorized platform-admin record; signing in alone does not grant privilege.
+- **Database:** Neon PostgreSQL and Data API with row-level security. Migrations 0001 through 0007 cover core schema, policies, CRM/finance/HR/inventory modules, license-write hardening, platform-admin policies, local SEO agents, and provider cost gates.
+- **Local SEO agents:** search-intent classifier, keyword-cluster generator, SEO planner, campaign planner, affiliate compliance checklist, and storyboard planner. These are deterministic rule-based helpers, not external LLM inference.
+- **Video & Image Studio:** browser-local Canvas/MediaRecorder template rendering from user-uploaded images, text overlays, storyboard, compliance checks, PNG export, and browser-supported MP4/WebM export. No image/video model, voice generator, cloud upload, or persistent media storage is connected in this version.
+- **Provider governance:** only the local manual-template provider is registered as available by default. Database constraints prevent an external provider being marked available without verified free quota and commercial rights.
 
-## Delivery policy
+## Data and publishing safeguards
 
-Feature status must be labeled honestly:
-- PLANNED: documented, not built.
-- IN_PROGRESS: work has started.
-- IMPLEMENTED: code exists.
-- TESTED: automated or documented test evidence exists.
-- LIVE_VERIFIED: production behavior was checked directly.
+- New products are private research records until explicitly activated and published.
+- Product pages require a source URL, affiliate URL, and a specific public description of at least 120 characters. Pages include an affiliate disclosure and sponsored/nofollow link attributes.
+- Content drafts require human review. Publishing controls require approval and at least 300 characters of non-template article content.
+- SEO-generated brief outlines are not publishable articles. They must be expanded, checked, and reviewed.
+- Browser-local video/image files are not uploaded to Neon. Download and retain them locally.
+- Accounting journals can be drafted and submitted for review only when debits equal credits; final posting is not enabled from the browser.
+- Payroll records are drafts/review-only; approval and payment execution are not enabled.
+- External provider API keys are not stored in the browser.
 
-A successful CI run is evidence for that workflow only, not proof that every feature works.
+## Commands
 
-## Initial roadmap
+- **npm run check** — syntax and static checks.
+- **npm test** — deterministic agent tests.
+- **npm run build** — multi-page static build.
+- **npm run generate:public** — generate crawlable public pages from records visible to the Neon anonymous role.
 
-- Phase 0: repository baseline, product decisions, security boundaries, schema and test strategy.
-- Phase 1: runnable application shell, health/status checks, responsive public website, and CI.
-- Phase 2: Neon-backed data model and authentication/session design after validating the chosen deployment constraints.
-- Phase 3: public SEO content system and user/admin workspaces with real CRUD and authorization.
-- Phase 4: affiliate product/campaign workflows, reports, exports, and audit trail.
-- Phase 5: provider-independent AI-assisted content studio and template-first media rendering.
-- Phase 6: carefully scoped multi-agent workflows, evaluations, and production-readiness checks.
+## Honest delivery status
 
-## Current verified baseline
+- **IMPLEMENTED IN BRANCH:** application modules, role-aware UI, local SEO/campaign/storyboard/compliance helpers, static public-page generator, scheduled publishing workflow, migrations, and CI assertions.
+- **DATABASE APPLIED:** migrations 0001–0007 applied to the designated development and production branches.
+- **TESTED:** only the checks and tests that show successful status in GitHub Actions; review the latest run before treating a release as verified.
+- **NOT YET LIVE VERIFIED:** the changes on foundation/icda-baseline must pass CI and be merged before the new public website and workspace are deployed from main; production browser sign-in, initial platform-admin bootstrap, scheduled CMS publishing, and the browser media-rendering experience still require direct live verification.
+- **NOT IMPLEMENTED:** external generative AI image/video APIs, AI voice generation, server-side media storage, automatic social publishing, real search-volume/difficulty integrations, final accounting posting, payroll approval/payment, and tax/legal compliance certification.
 
-- Repository exists and is initially empty; main is the default branch.
-- Neon project holy-block-61637276 has a ready production branch br-noisy-snow-aoosguyk.
-- Initial table inspection returned no application tables.
-- No application build or deployment has been verified yet.
+## Production prerequisites
+
+1. Keep main as the deployment source and merge only after the exact PR head CI is green.
+2. After deployment, register the owner's account through the production workspace.
+3. Bootstrap that exact user ID as the first platform administrator through a verified database procedure; do not create a privileged identity based on a guessed email.
+4. Verify sign-in, workspace isolation, product publishing, public sitemap, scheduled CMS workflow, and video rendering in the production browser.
+5. Review privacy, affiliate disclosure, tax/accounting rules, and applicable legal obligations before commercial launch.
