@@ -163,14 +163,40 @@ function addContentWorkflowActions(root, row) {
   if (actions.childElementCount) root.append(actions);
 }
 async function loadProducts() {
-  const rows = await api('affiliate_products', { query: 'select=id,name,merchant_name,category,price_amount,currency,status,source_url&workspace_id=eq.' + state.workspace.id + '&order=created_at.desc&limit=100' });
+  const rows = await api('affiliate_products', { query: 'select=id,name,merchant_name,category,price_amount,currency,status,source_url,affiliate_url,public_slug,public_description,is_public,published_at&workspace_id=eq.' + state.workspace.id + '&order=created_at.desc&limit=100' });
   $('product-count').textContent = String(rows.length);
   $('products-list').replaceChildren();
   if (!rows.length) empty('products-list', 'Belum ada produk. Tambahkan produk pertama melalui formulir di atas.');
   rows.forEach((row) => {
     const price = row.price_amount == null ? 'Harga belum diverifikasi' : new Intl.NumberFormat('id-ID').format(Number(row.price_amount)) + ' ' + (row.currency || 'IDR');
-    const item = record('products-list', row.name, [row.merchant_name, row.category, price, row.source_url], row.status);
-    if (state.role === 'owner' || state.role === 'admin') addDeleteAction(item, 'affiliate_products', row.id);
+    const publicState = row.is_public ? 'Public page: /products/' + row.public_slug + '/' : 'Private product record';
+    const item = record('products-list', row.name, [row.merchant_name, row.category, price, row.source_url, publicState, row.public_description], row.status);
+    if (['owner','admin','editor'].includes(state.role)) {
+      const actions = document.createElement('div'); actions.className = 'record-actions';
+      if (row.status !== 'active' && row.status !== 'archived') {
+        const activate = document.createElement('button'); activate.type = 'button'; activate.className = 'button button-small'; activate.textContent = 'Aktifkan produk';
+        activate.addEventListener('click', async () => { try { await api('affiliate_products', { method: 'PATCH', query: 'id=eq.' + encodeURIComponent(row.id), body: { status: 'active' } }); await refreshAll(); } catch (e) { message('workspace-message', e.message, 'error'); } });
+        actions.append(activate);
+      }
+      if (row.is_public) {
+        const unpublish = document.createElement('button'); unpublish.type = 'button'; unpublish.className = 'button button-small button-danger'; unpublish.textContent = 'Tarik halaman publik';
+        unpublish.addEventListener('click', async () => { try { await api('affiliate_products', { method: 'PATCH', query: 'id=eq.' + encodeURIComponent(row.id), body: { is_public: false, published_at: null } }); await refreshAll(); message('workspace-message', 'Produk ditarik dari publikasi; static page akan diperbarui pada deployment berikutnya.', 'success'); } catch (e) { message('workspace-message', e.message, 'error'); } });
+        actions.append(unpublish);
+      } else if (row.status === 'active' && row.source_url && row.affiliate_url && String(row.public_description || '').trim().length >= 120) {
+        const publish = document.createElement('button'); publish.type = 'button'; publish.className = 'button button-small'; publish.textContent = 'Publikasikan halaman produk';
+        publish.addEventListener('click', async () => {
+          if (!window.confirm('Publikasikan halaman produk? Periksa klaim, harga, hak gambar, dan disclosure terlebih dahulu.')) return;
+          try {
+            const slug = String(row.public_slug || slugify(row.name)).trim();
+            await api('affiliate_products', { method: 'PATCH', query: 'id=eq.' + encodeURIComponent(row.id), body: { status: 'active', is_public: true, public_slug: slug, published_at: new Date().toISOString() } });
+            await refreshAll(); message('workspace-message', 'Produk ditandai publik. Halaman statis akan dibuat oleh job publikasi berkala.', 'success');
+          } catch (e) { message('workspace-message', e.message || 'Gagal mempublikasikan produk.', 'error'); }
+        });
+        actions.append(publish);
+      }
+      if (!row.is_public && (state.role === 'owner' || state.role === 'admin')) addDeleteAction(item, 'affiliate_products', row.id);
+      if (actions.childElementCount) item.append(actions);
+    }
   });
 }
 async function loadKeywords() {
