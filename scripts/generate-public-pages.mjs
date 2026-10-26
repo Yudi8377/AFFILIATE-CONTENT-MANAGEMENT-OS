@@ -57,9 +57,22 @@ function shell({ title, description, canonical, body, jsonLd, kind }) {
     '</head><body><header><a href="' + esc(siteBase) + '">Affiliate Content OS</a></header><main><article><h1>' + esc(title) + '</h1><p class="muted">Updated ' + new Date().toISOString().slice(0, 10) + '</p>' + body + '</article></main><footer><a href="' + esc(siteBase) + '">Home</a> · <a href="' + esc(siteBase) + 'privacy.html">Privacy</a></footer></body></html>';
 }
 async function getRows(table, query) {
-  const response = await fetch(apiBase + '/' + table + '?' + query, { headers: { Accept: 'application/json' }, cache: 'no-store' });
+  const headers = { Accept: 'application/json' };
+  // Neon Data API requires a JWT. A dedicated read-only token may be supplied
+  // by CI, but never put a token into the public browser bundle.
+  if (process.env.NEON_PUBLIC_READ_TOKEN) headers.Authorization = 'Bearer ' + process.env.NEON_PUBLIC_READ_TOKEN;
+  const response = await fetch(apiBase + '/' + table + '?' + query, { headers, cache: 'no-store' });
   const raw = await response.text();
-  if (!response.ok) throw new Error('Public CMS read failed for ' + table + ': HTTP ' + response.status + ' ' + raw.slice(0, 250));
+  if (!response.ok) {
+    const detail = raw.slice(0, 250);
+    // Keep the static site build deterministic when no read-only publishing
+    // credential is configured. Do not hide permission or schema failures.
+    if (response.status === 400 && /missing authentication credentials/i.test(detail) && !process.env.NEON_PUBLIC_READ_TOKEN) {
+      console.warn('Public CMS read skipped for ' + table + ': no read-only Neon Data API JWT configured; publishing output contains no records from this table.');
+      return [];
+    }
+    throw new Error('Public CMS read failed for ' + table + ': HTTP ' + response.status + ' ' + detail);
+  }
   const data = raw ? JSON.parse(raw) : [];
   if (!Array.isArray(data)) throw new Error('Unexpected public CMS response for ' + table);
   return data;
