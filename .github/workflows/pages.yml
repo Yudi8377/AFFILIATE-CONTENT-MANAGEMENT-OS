@@ -17,6 +17,7 @@ on:
       - 'neon/functions/**'
       - '.github/workflows/ci.yml'
       - '.github/workflows/branch-checks.yml'
+      - '.github/workflows/publish-cms.yml'
       - 'assets/**'
       - 'robots.txt'
       - 'sitemap.xml'
