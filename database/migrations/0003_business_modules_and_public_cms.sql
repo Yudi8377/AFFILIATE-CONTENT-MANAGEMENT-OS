@@ -12,6 +12,11 @@ ALTER TABLE public.affiliate_products
   ADD COLUMN IF NOT EXISTS public_description text,
   ADD COLUMN IF NOT EXISTS published_at timestamptz;
 CREATE UNIQUE INDEX IF NOT EXISTS idx_products_public_slug ON public.affiliate_products(public_slug) WHERE public_slug IS NOT NULL;
+DO $ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'affiliate_products_public_publish_check') THEN
+    ALTER TABLE public.affiliate_products ADD CONSTRAINT affiliate_products_public_publish_check CHECK (NOT is_public OR (public_slug IS NOT NULL AND published_at IS NOT NULL));
+  END IF;
+END $;
 
 CREATE TABLE IF NOT EXISTS public.platform_admins (
   user_id text PRIMARY KEY,
@@ -51,9 +56,9 @@ CREATE TABLE IF NOT EXISTS public.agent_registry (
 INSERT INTO public.agent_registry(agent_key,display_name,purpose,status,requires_external_model) VALUES
  ('intake-brief','Intake and Brief Agent','Normalize product and campaign briefs into structured fields.','planned',false),
  ('product-facts','Product Fact Agent','Track product claims and their source provenance.','planned',false),
- ('keyword-cluster','Keyword Cluster Agent','Group imported keywords by semantic/topic labels without inventing metrics.','rule_based',false),
- ('search-intent','Search Intent Agent','Classify search intent from supplied keyword and context.','rule_based',false),
- ('seo-planner','SEO Planner Agent','Generate structured page briefs, title and meta-description drafts from user inputs.','rule_based',false),
+ ('keyword-cluster','Keyword Cluster Agent','Group imported keywords by semantic/topic labels without inventing metrics.','planned',false),
+ ('search-intent','Search Intent Agent','Classify search intent from supplied keyword and context.','planned',false),
+ ('seo-planner','SEO Planner Agent','Generate structured page briefs, title and meta-description drafts from user inputs.','planned',false),
  ('editorial-qa','Editorial QA Agent','Check required metadata, disclosure, and unsupported metric fields.','planned',false),
  ('affiliate-compliance','Affiliate Compliance Agent','Flag missing affiliate disclosures and unsupported product claims.','planned',false),
  ('campaign-planner','Campaign Planner Agent','Draft campaign objectives, audience, channels and KPIs.','planned',false),
@@ -327,7 +332,9 @@ CREATE POLICY platform_admin_license_update ON public.license_entitlements FOR U
 CREATE POLICY platform_admin_license_delete ON public.license_entitlements FOR DELETE TO authenticated USING (public.is_platform_admin());
 
 CREATE POLICY public_products_read ON public.affiliate_products FOR SELECT TO anonymous USING (is_public = true AND status = 'active' AND public_slug IS NOT NULL);
+CREATE POLICY public_products_read_authenticated ON public.affiliate_products FOR SELECT TO authenticated USING (is_public = true AND status = 'active' AND public_slug IS NOT NULL);
 CREATE POLICY public_content_read ON public.content_items FOR SELECT TO anonymous USING (status = 'published' AND published_at IS NOT NULL);
+CREATE POLICY public_content_read_authenticated ON public.content_items FOR SELECT TO authenticated USING (status = 'published' AND published_at IS NOT NULL);
 
 CREATE POLICY crm_contacts_select ON public.crm_contacts FOR SELECT TO authenticated USING (public.is_workspace_member(workspace_id));
 CREATE POLICY crm_contacts_insert ON public.crm_contacts FOR INSERT TO authenticated WITH CHECK (created_by = (SELECT auth.user_id()) AND public.has_workspace_role(workspace_id, ARRAY['owner','admin','editor','crm_manager']::text[]));
