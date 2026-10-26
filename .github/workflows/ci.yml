@@ -1,0 +1,37 @@
+name: Pull request validation
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install pinned dependencies
+        run: npm install --no-audit --no-fund
+      - name: Validate application and build
+        env:
+          VITE_NEON_AUTH_URL: https://ep-little-field-aomzop7h.neonauth.c-2.ap-southeast-1.aws.neon.tech/neondb/auth
+          VITE_NEON_DATA_API_URL: https://ep-little-field-aomzop7h.apirest.c-2.ap-southeast-1.aws.neon.tech/neondb/rest/v1
+        run: |
+          npm run check
+          npm run build
+          cp robots.txt sitemap.xml dist/
+          test -s dist/index.html
+          test -s dist/app.html
+          test -s dist/assets/css/workspace.css
+          grep -q 'noindex,nofollow,noarchive' dist/app.html
+          test "$(grep -c 'CREATE TABLE IF NOT EXISTS public\.' database/migrations/0001_core_schema.sql)" -eq 12
+          test "$(grep -c 'ENABLE ROW LEVEL SECURITY' database/migrations/0001_core_schema.sql)" -eq 12
+          test "$(grep -c 'CREATE POLICY' database/migrations/0002_rls_policies.sql)" -eq 39
+      - name: Smoke test Neon development function
+        run: |
+          curl --fail --silent --show-error --retry 3 --retry-delay 2 --max-time 30 https://br-morning-recipe-aov26ci2-health.compute.c-2.ap-southeast-1.aws.neon.tech/health | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const j=JSON.parse(s);if(j.ok!==true)process.exit(1);console.log('Neon function health:',j.status)})"
