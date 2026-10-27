@@ -489,6 +489,7 @@ async function enterWorkspace() {
     $('welcome-title').textContent = state.workspace.name || 'Workspace affiliate';
     $('welcome-subtitle').textContent = (result.user.name || result.user.email || 'Pengguna') + ' · ' + (result.user.email || '') + ' · Role: ' + state.role;
     applyRoleAccess();
+    activateRequestedModule();
     await refreshAll();
   } catch (error) {
     $('auth-panel').hidden = false;
@@ -536,6 +537,57 @@ function httpUrl(value, label) {
 function requireWorkspace() {
   if (!state.workspace || !state.workspace.id || !state.user || !state.user.id) throw new Error('Workspace belum siap. Masuk kembali.');
 }
+function activateRequestedModule() {
+  const params = new URLSearchParams(window.location.search);
+  const requested = params.get('module') || window.location.hash.replace(/^#view-/, '');
+  const allowed = new Set(['products','keywords','content','campaigns','crm','expenses','employees','payroll','accounting','inventory','seo','studio']);
+  if (!allowed.has(requested)) return;
+  const tab = document.querySelector('.module-tab[data-view="' + requested + '"]');
+  const panel = $('view-' + requested);
+  if (!tab || !panel || tab.hidden) return;
+  document.querySelectorAll('.module-tab').forEach((item) => item.classList.toggle('is-active', item === tab));
+  document.querySelectorAll('.module-panel').forEach((item) => { item.hidden = item !== panel; });
+}
+function enhancePasswordFields() {
+  document.querySelectorAll('.auth-form input[type="password"]').forEach((input) => {
+    if (input.closest('.password-input-wrap')) return;
+    const wrap = document.createElement('div');
+    wrap.className = 'password-input-wrap';
+    input.parentNode.insertBefore(wrap, input);
+    wrap.append(input);
+    const toggle = document.createElement('button');
+    toggle.type = 'button';
+    toggle.className = 'password-visibility';
+    toggle.textContent = 'Lihat';
+    toggle.setAttribute('aria-label', 'Tampilkan kata sandi');
+    toggle.setAttribute('aria-pressed', 'false');
+    toggle.addEventListener('click', () => {
+      const visible = input.type === 'password';
+      input.type = visible ? 'text' : 'password';
+      toggle.textContent = visible ? 'Sembunyikan' : 'Lihat';
+      toggle.setAttribute('aria-label', visible ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi');
+      toggle.setAttribute('aria-pressed', String(visible));
+    });
+    wrap.append(toggle);
+  });
+}
+function showAuthForm(formId) {
+  ['signin-form','signup-form','password-reset-request-form','password-reset-complete-form'].forEach((id) => {
+    const form = $(id);
+    if (form) form.hidden = id !== formId;
+  });
+  $('signin-tab').hidden = formId === 'password-reset-complete-form';
+  $('signup-tab').hidden = formId === 'password-reset-complete-form';
+}
+async function applyPasswordResetRoute() {
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get('token');
+  if (token) {
+    showAuthForm('password-reset-complete-form');
+    message('auth-message', 'Tautan reset terdeteksi. Masukkan kata sandi baru.');
+    enhancePasswordFields();
+  }
+}
 function applyRoleAccess() {
   const allowed = {
     'product-form': ['owner','admin','editor'],
@@ -571,16 +623,62 @@ function applyRoleAccess() {
 }
 
 $('signin-tab').addEventListener('click', () => {
+  showAuthForm('signin-form');
   $('signin-tab').classList.add('is-active'); $('signup-tab').classList.remove('is-active');
   $('signin-tab').setAttribute('aria-selected', 'true'); $('signup-tab').setAttribute('aria-selected', 'false');
   $('signin-form').hidden = false; $('signup-form').hidden = true; message('auth-message', '');
 });
 $('signup-tab').addEventListener('click', () => {
+  showAuthForm('signup-form');
   $('signup-tab').classList.add('is-active'); $('signin-tab').classList.remove('is-active');
   $('signup-tab').setAttribute('aria-selected', 'true'); $('signin-tab').setAttribute('aria-selected', 'false');
   $('signup-form').hidden = false; $('signin-form').hidden = true; message('auth-message', '');
 });
 $('signin-form').addEventListener('submit', (event) => handleAuth(event, 'signin'));
+$('forgot-password').addEventListener('click', () => {
+  $('reset-email').value = $('signin-email').value || '';
+  showAuthForm('password-reset-request-form');
+  message('auth-message', '');
+});
+$('cancel-reset').addEventListener('click', () => { showAuthForm('signin-form'); message('auth-message', ''); });
+$('cancel-reset-complete').addEventListener('click', () => { showAuthForm('signin-form'); message('auth-message', ''); });
+$('password-reset-request-form').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  busy(form, true);
+  message('auth-message', 'Meminta tautan reset kata sandi…');
+  try {
+    if (!auth || typeof auth.requestPasswordReset !== 'function') throw new Error('Fitur reset password tidak tersedia pada versi Neon Auth yang terpasang.');
+    const email = String(new FormData(form).get('email') || '').trim();
+    const redirectTo = new URL('./app.html', window.location.href).href;
+    const result = await auth.requestPasswordReset({ email, redirectTo });
+    if (result && result.error) throw new Error(result.error.message || 'Permintaan reset gagal.');
+    message('auth-message', 'Jika email terdaftar, tautan reset akan dikirim. Periksa inbox dan folder spam.', 'success');
+  } catch (error) { message('auth-message', error.message || 'Permintaan reset gagal.', 'error'); }
+  finally { busy(form, false); }
+});
+$('password-reset-complete-form').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  busy(form, true);
+  try {
+    if (!auth || typeof auth.resetPassword !== 'function') throw new Error('Penyelesaian reset password tidak tersedia pada versi Neon Auth yang terpasang.');
+    const values = Object.fromEntries(new FormData(form).entries());
+    if (String(values.newPassword || '').length < 8) throw new Error('Kata sandi minimal 8 karakter.');
+    if (values.newPassword !== values.confirmPassword) throw new Error('Konfirmasi kata sandi tidak sama.');
+    const token = new URLSearchParams(window.location.search).get('token');
+    if (!token) throw new Error('Token reset tidak ditemukan. Minta tautan reset yang baru.');
+    const result = await auth.resetPassword({ newPassword: String(values.newPassword), token });
+    if (result && result.error) throw new Error(result.error.message || 'Kata sandi belum berhasil diperbarui.');
+    form.reset();
+    window.history.replaceState({}, '', window.location.pathname);
+    showAuthForm('signin-form');
+    message('auth-message', 'Kata sandi berhasil diperbarui. Silakan masuk dengan kata sandi baru.', 'success');
+  } catch (error) { message('auth-message', error.message || 'Reset kata sandi gagal.', 'error'); }
+  finally { busy(form, false); }
+});
+enhancePasswordFields();
+applyPasswordResetRoute();
 $('signup-form').addEventListener('submit', (event) => handleAuth(event, 'signup'));
 $('signout-button').addEventListener('click', async () => {
   try {
