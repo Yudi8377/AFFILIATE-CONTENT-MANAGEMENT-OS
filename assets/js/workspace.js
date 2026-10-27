@@ -86,7 +86,7 @@ async function getWorkspaceJwt(session) {
   // Keep the browser-managed HttpOnly session cookie; never copy it to JS storage.
   // credentials: include is required for the cross-origin Neon Auth endpoint.
   try {
-    const response = await fetch(AUTH_URL.replace(/\\/$/, '') + '/token', {
+    const response = await fetch(AUTH_URL.replace(/\/$/, '') + '/token', {
       method: 'GET',
       credentials: 'include',
       cache: 'no-store',
