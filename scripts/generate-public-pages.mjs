@@ -87,7 +87,7 @@ async function main() {
     getRows('content_items', 'select=id,title,slug,meta_title,meta_description,body,locale,published_at,updated_at,content_type,disclosure_required&status=eq.published&published_at=not.is.null&order=published_at.desc&limit=500'),
     getRows('affiliate_products', 'select=id,name,merchant_name,category,source_url,affiliate_url,price_amount,currency,public_slug,public_description,published_at&is_public=eq.true&status=eq.active&public_slug=not.is.null&order=published_at.desc&limit=500')
   ]);
-  const sitemap = new Set([siteBase, siteBase + 'privacy.html', siteBase + 'disclosure.html', siteBase + 'product-intelligence.html', siteBase + 'seo-content.html', siteBase + 'content-studio.html', siteBase + 'campaign-operations.html', siteBase + 'cost-governance.html']);
+  const sitemap = new Set([siteBase, siteBase + 'privacy.html', siteBase + 'disclosure.html', siteBase + 'content-studio.html', siteBase + 'campaign-operations.html']);
   let generatedArticles = 0, skippedArticles = 0, generatedProducts = 0, skippedProducts = 0;
   const articleLinks = [], productLinks = [];
   for (const article of articles) {
