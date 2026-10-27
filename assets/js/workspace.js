@@ -41,6 +41,63 @@ function slugify(value) {
     .replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '').slice(0, 80) || 'draft-' + Date.now();
 }
+async function readJwtResponse(response) {
+  const raw = await response.text();
+  let payload = null;
+  if (raw) {
+    try { payload = JSON.parse(raw); } catch { payload = null; }
+  }
+  const token = payload && (
+    payload.token ||
+    (payload.data && payload.data.token) ||
+    (payload.session && payload.session.access_token) ||
+    (payload.data && payload.data.session && payload.data.session.access_token)
+  );
+  if (!response.ok) {
+    const detail = payload && (payload.message || payload.error || payload.code);
+    throw new Error(detail || ('endpoint token mengembalikan HTTP ' + response.status));
+  }
+  if (typeof token !== 'string' || token.split('.').length !== 3) {
+    throw new Error('respons endpoint token tidak berisi JWT yang valid.');
+  }
+  return token;
+}
+async function getWorkspaceJwt(session) {
+  // The SDK's token() result can be a cached session shape in some beta builds.
+  // Reuse a session access token when present, then ask the Auth token endpoint.
+  const accessToken = session && (session.access_token || session.accessToken);
+  if (typeof accessToken === 'string' && accessToken.split('.').length === 3) return accessToken;
+
+  let sdkError = null;
+  try {
+    const result = await auth.token();
+    const data = result && result.data;
+    const token = data && (
+      data.token ||
+      (data.session && data.session.access_token) ||
+      data.access_token
+    );
+    if (!result.error && typeof token === 'string' && token.split('.').length === 3) return token;
+    sdkError = (result && result.error && result.error.message) || 'SDK tidak mengembalikan token.';
+  } catch (error) {
+    sdkError = error && error.message ? error.message : 'Pemanggilan token SDK gagal.';
+  }
+
+  // Keep the browser-managed HttpOnly session cookie; never copy it to JS storage.
+  // credentials: include is required for the cross-origin Neon Auth endpoint.
+  try {
+    const response = await fetch(AUTH_URL.replace(/\\/$/, '') + '/token', {
+      method: 'GET',
+      credentials: 'include',
+      cache: 'no-store',
+      headers: { Accept: 'application/json' }
+    });
+    return await readJwtResponse(response);
+  } catch (error) {
+    const detail = error && error.message ? error.message : 'endpoint token tidak dapat diakses.';
+    throw new Error('Neon Auth belum memberikan JWT. SDK: ' + sdkError + ' Endpoint: ' + detail + ' Pastikan sesi masih aktif dan origin GitHub Pages diizinkan oleh Neon Auth.');
+  }
+}
 async function identity() {
   if (!auth) throw new Error('Konfigurasi Neon Auth belum tersedia.');
   const result = await auth.getSession();
@@ -49,11 +106,8 @@ async function identity() {
   const session = data && (data.session || data);
   const user = (data && data.user) || (session && session.user) || null;
   if (!user || !user.id) return { user: null, token: null };
-  const tokenResult = await auth.token();
-  if (tokenResult.error || !tokenResult.data || !tokenResult.data.token) {
-    throw new Error((tokenResult.error && tokenResult.error.message) || 'Neon Auth tidak menghasilkan JWT.');
-  }
-  return { user, token: tokenResult.data.token };
+  const token = await getWorkspaceJwt(session);
+  return { user, token };
 }
 async function api(table, options) {
   options = options || {};
