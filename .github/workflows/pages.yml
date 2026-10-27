@@ -57,7 +57,9 @@ jobs:
           grep -q 'name="description"' index.html
           grep -q 'rel="canonical"' index.html
           grep -q 'application/ld+json' index.html
-          grep -q 'LOCAL PREVIEW' index.html
+          grep -q 'compression-hero' index.html
+          grep -q 'compression-panel' index.html
+          grep -q 'Riset.' index.html
           ! grep -R -E '(DATABASE_URL|NEON_API_KEY|OPENAI_API_KEY|sk-[A-Za-z0-9]{20,})' index.html assets
       - name: Check JavaScript syntax and production build
         env:
