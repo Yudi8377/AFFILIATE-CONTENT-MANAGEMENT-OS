@@ -49,6 +49,11 @@ jobs:
           VITE_NEON_DATA_API_URL: https://ep-little-field-aomzop7h.apirest.c-2.ap-southeast-1.aws.neon.tech/neondb/rest/v1
         run: |
           test -s index.html
+          test -s product-intelligence.html
+          test -s seo-content.html
+          test -s content-studio.html
+          test -s campaign-operations.html
+          test -s cost-governance.html
           test -s assets/css/site.css
           test -s assets/js/app.js
           test -s assets/favicon.svg
@@ -76,6 +81,11 @@ jobs:
           test -s dist/admin.html
           test -s dist/privacy.html
           test -s dist/disclosure.html
+          test -s dist/product-intelligence.html
+          test -s dist/seo-content.html
+          test -s dist/content-studio.html
+          test -s dist/campaign-operations.html
+          test -s dist/cost-governance.html
           test -s dist/articles/index.html
           test -s dist/products/index.html
           grep -q 'noindex,nofollow,noarchive' dist/app.html
