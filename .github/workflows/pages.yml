@@ -64,7 +64,15 @@ jobs:
           grep -q 'application/ld+json' index.html
           grep -q 'compression-hero' index.html
           grep -q 'compression-panel' index.html
-          grep -q 'Riset.' index.html
+          grep -q 'panel-studio' index.html
+          grep -q 'panel-campaign' index.html
+          ! grep -q 'product-intelligence.html' index.html
+          ! grep -q 'seo-content.html' index.html
+          ! grep -q 'cost-governance.html' index.html
+          grep -q 'password-reset-request-form' app.html
+          grep -q 'password-visibility' assets/js/workspace.js
+          grep -q 'requestPasswordReset' assets/js/workspace.js
+          grep -q 'resetPassword' assets/js/workspace.js
           ! grep -R -E '(DATABASE_URL|NEON_API_KEY|OPENAI_API_KEY|sk-[A-Za-z0-9]{20,})' index.html assets
       - name: Check JavaScript syntax and production build
         env:
