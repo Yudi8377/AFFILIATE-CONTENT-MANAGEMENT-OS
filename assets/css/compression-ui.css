@@ -1,6 +1,6 @@
 /* Compression-inspired editorial interaction for Affiliate Content OS.
    Original implementation; visual principles are adapted, not copied source code. */
-:root{--compression-bg:#0b0d0c;--compression-panel:#151816;--compression-line:#343a32;--compression-text:#f0f1e9;--compression-muted:#a3a99d;--compression-accent:#d8ff3f}
+:root{color-scheme:dark;--bg:#0b0d0c;--panel:#151816;--panel2:#1b201a;--line:#343a32;--text:#f0f1e9;--muted:#a3a99d;--accent:#d8ff3f;--accent2:#e7ff9b;--ink:#11140d;--compression-bg:#0b0d0c;--compression-panel:#151816;--compression-line:#343a32;--compression-text:#f0f1e9;--compression-muted:#a3a99d;--compression-accent:#d8ff3f}
 .compression-hero{background:var(--compression-bg);color:var(--compression-text);padding:clamp(42px,6vw,82px) max(24px,calc((100vw - 1320px)/2)) 34px;min-height:calc(100svh - 78px);border-bottom:1px solid var(--compression-line);overflow:hidden}
 .compression-intro{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(220px,.85fr);column-gap:clamp(28px,7vw,100px);align-items:end;max-width:1320px;margin:0 auto 38px}
 .compression-kicker,.compression-index,.panel-index,.panel-tag{font:700 10px/1.4 ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;letter-spacing:.13em;text-transform:uppercase}
@@ -37,3 +37,14 @@
 @media(max-width:900px){.compression-hero{min-height:0;padding-top:48px}.compression-intro{grid-template-columns:1fr;gap:20px}.compression-intro h1{font-size:clamp(58px,13vw,100px)}.compression-intro-copy{max-width:600px;margin-bottom:0}.compression-index{margin-top:10px}.compression-panels{display:grid;grid-template-columns:1fr;min-height:0}.compression-panel{min-height:175px;padding:20px 22px;display:grid;grid-template-columns:minmax(110px,.42fr) 1fr;align-items:center;gap:20px}.compression-panel:hover,.compression-panel:focus-visible{min-height:220px}.compression-panel:not(:first-child){border-left:0;border-top:1px solid var(--compression-line)}.panel-index{top:14px;left:22px}.panel-spine{position:static;grid-column:1;grid-row:1;transform:none;rotate:0;writing-mode:horizontal-tb;white-space:normal;font-size:clamp(22px,4vw,34px);align-self:end;margin-top:32px}.panel-content{grid-column:2;grid-row:1;opacity:1;transform:none;align-self:center;gap:8px}.panel-content strong{font-size:clamp(22px,3.5vw,31px)}.panel-content>span:not(.panel-tag):not(.panel-cta){font-size:11px}.panel-cta{margin-top:2px;padding-top:8px}.compression-panel:hover .panel-spine,.compression-panel:focus-visible .panel-spine{opacity:1;transform:none}.compression-panels:has(.compression-panel:hover) .compression-panel:not(:hover){filter:none;background:var(--compression-panel)}}
 @media(max-width:540px){.compression-hero{padding-inline:16px}.compression-intro{margin-bottom:26px}.compression-intro h1{font-size:clamp(52px,16vw,82px)}.compression-kicker{font-size:9px}.compression-panel{grid-template-columns:1fr;gap:10px;min-height:0;padding:18px 16px}.panel-index{position:static;grid-column:1;grid-row:1}.panel-spine{grid-column:1;grid-row:2;margin:0;font-size:27px}.panel-content{grid-column:1;grid-row:3;margin-top:0;width:100%}.panel-content strong{font-size:29px}.compression-panel:hover,.compression-panel:focus-visible{min-height:0}.compression-panel:not(:hover) .panel-content{opacity:1;transform:none}.compression-panel:not(:hover) .panel-spine{display:none}}
 @media(prefers-reduced-motion:reduce){.compression-panel,.compression-panel::before,.compression-panel::after,.panel-spine,.panel-content,.compression-start{transition:none!important}}
+
+/* Carry the industrial visual language into the rest of the public landing page. */
+.site-header{background:rgba(11,13,12,.95);border-bottom-color:#343a32}
+.brand-mark{border-radius:0}
+.button,.button-small,.feature-icon,.feature-card,.seo-sample,.workspace-card,.demo-panel,.task-form input,.task-list li,.status-pill,.period-pill{border-radius:0}
+.button-ghost{border-color:#555d4e}
+.proof-strip,.workflow-section{background:#101310;border-color:#343a32}
+.feature-card{background:#121512;border-color:#343a32}
+.feature-icon{border-color:#53613b}
+.workspace-card{background:#121512;border-color:#343a32}
+.site-footer{border-top-color:#343a32}
